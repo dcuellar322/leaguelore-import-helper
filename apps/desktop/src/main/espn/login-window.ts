@@ -1,6 +1,7 @@
 import { BrowserWindow } from 'electron';
 import { getEspnSession } from './cookies.js';
 import { hardenWindow, isAllowedEspnAuthUrl } from '../security.js';
+import { currentSeasonYear } from '../../shared/environment.js';
 
 type OpenEspnLoginParams = {
   leagueId?: string;
@@ -57,7 +58,7 @@ export async function openEspnLoginWindow(params: OpenEspnLoginParams): Promise<
 }
 
 function buildFantasyUrl(params: OpenEspnLoginParams): string {
-  const season = params.season ?? new Date().getFullYear();
+  const season = params.season ?? currentSeasonYear();
   if (params.leagueId) {
     return `https://fantasy.espn.com/football/league?leagueId=${encodeURIComponent(params.leagueId)}&seasonId=${season}`;
   }

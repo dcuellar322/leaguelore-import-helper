@@ -43,6 +43,8 @@ Run the desktop app in development:
 npm run dev
 ```
 
+The helper points to `http://localhost:15173` in local development and `https://www.leagueloreapp.com` in packaged production builds. The API URL and import token are runtime session details, so they are not edited in the app UI.
+
 Run type checks:
 
 ```bash
@@ -93,10 +95,10 @@ Supported query parameters:
 
 - `token`: short-lived LeagueLore import token
 - `leagueId`: numeric ESPN league ID
-- `season`: ESPN season year, for example `2025`
+- `season`: optional ESPN season start year, for example `2025`
 - `apiBase`: optional LeagueLore API base URL
 
-LeagueLore should include `season` whenever it already knows the target league season. If `season` is omitted, the helper falls back to saved settings or the current year.
+LeagueLore should include `season` whenever the import flow has a season start year. If `season` is omitted, the helper uses the current ESPN season for the local ESPN request.
 
 ## Repository Layout
 

@@ -10,6 +10,10 @@ type UrlValidationOptions = {
 };
 
 export const SeasonSchema = z.coerce.number().int().min(2000).max(2100);
+export const OptionalSeasonSchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === '') return undefined;
+  return value;
+}, SeasonSchema.optional());
 
 export const EspnLeagueIdSchema = z
   .string()
@@ -67,24 +71,24 @@ export function createSettingsSchema(options: UrlValidationOptions) {
     apiBaseUrl: z.string().transform((value) => normalizeApiBaseUrl(value, options)),
     importToken: OptionalImportTokenSchema,
     leagueId: z.string().trim().max(64),
-    season: SeasonSchema
+    season: OptionalSeasonSchema
   });
 }
 
 export const EspnOpenLoginParamsSchema = z.object({
   leagueId: EspnLeagueIdSchema.optional(),
-  season: SeasonSchema.optional()
+  season: OptionalSeasonSchema
 });
 
 export const EspnImportParamsSchema = z.object({
   leagueId: EspnLeagueIdSchema,
-  season: SeasonSchema,
+  season: OptionalSeasonSchema,
   importSessionId: ImportSessionIdSchema
 });
 
 export const MockImportParamsSchema = z.object({
   leagueId: MockLeagueIdSchema,
-  season: SeasonSchema,
+  season: OptionalSeasonSchema,
   importSessionId: ImportSessionIdSchema
 });
 
@@ -110,7 +114,7 @@ export function parseDeepLinkSettings(input: string, options: UrlValidationOptio
     if (apiBaseUrl) settings.apiBaseUrl = normalizeApiBaseUrl(apiBaseUrl, options);
     if (importToken) settings.importToken = ImportTokenSchema.parse(importToken);
     if (leagueId) settings.leagueId = EspnLeagueIdSchema.parse(leagueId);
-    if (season) settings.season = SeasonSchema.parse(season);
+    if (season) settings.season = OptionalSeasonSchema.parse(season);
 
     return settings;
   } catch {

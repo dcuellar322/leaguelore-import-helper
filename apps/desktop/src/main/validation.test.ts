@@ -14,7 +14,7 @@ import {
 describe('URL and deep-link validation', () => {
   it('normalizes production and local LeagueLore API URLs', () => {
     expect(normalizeApiBaseUrl('https://www.leagueloreapp.com/api/v1///', { allowLocalhost: false })).toBe('https://www.leagueloreapp.com/api/v1');
-    expect(normalizeApiBaseUrl('http://127.0.0.1:8000/', { allowLocalhost: true })).toBe('http://127.0.0.1:8000');
+    expect(normalizeApiBaseUrl('http://127.0.0.1:15173/', { allowLocalhost: true })).toBe('http://127.0.0.1:15173');
   });
 
   it('rejects unsafe API URL shapes', () => {
@@ -57,17 +57,17 @@ describe('URL and deep-link validation', () => {
 
   it('validates persisted settings and upload parameters', () => {
     const settings = createSettingsSchema({ allowLocalhost: true }).parse({
-      apiBaseUrl: 'http://localhost:8000/api/',
+      apiBaseUrl: 'http://localhost:15173/api/',
       importToken: '',
       leagueId: ' 123 ',
-      season: '2026'
+      season: ''
     });
 
     expect(settings).toEqual({
-      apiBaseUrl: 'http://localhost:8000/api',
+      apiBaseUrl: 'http://localhost:15173/api',
       importToken: '',
       leagueId: '123',
-      season: 2026
+      season: undefined
     });
 
     expect(() => createUploadParamsSchema({ allowLocalhost: false }).parse({
@@ -78,13 +78,13 @@ describe('URL and deep-link validation', () => {
   });
 
   it('validates import parameter boundaries', () => {
-    expect(EspnOpenLoginParamsSchema.parse({ leagueId: '123', season: '2026' })).toEqual({ leagueId: '123', season: 2026 });
+    expect(EspnOpenLoginParamsSchema.parse({ leagueId: '123', season: '' })).toEqual({ leagueId: '123', season: undefined });
     expect(EspnImportParamsSchema.parse({ leagueId: '123', season: 2026, importSessionId: 'session-1' })).toEqual({
       leagueId: '123',
       season: 2026,
       importSessionId: 'session-1'
     });
-    expect(MockImportParamsSchema.parse({ leagueId: 'mock_league-1', season: '2026' })).toEqual({ leagueId: 'mock_league-1', season: 2026 });
+    expect(MockImportParamsSchema.parse({ leagueId: 'mock_league-1', season: undefined })).toEqual({ leagueId: 'mock_league-1', season: undefined });
     expect(() => EspnImportParamsSchema.parse({ leagueId: 'abc', season: 2026 })).toThrow();
     expect(() => MockImportParamsSchema.parse({ leagueId: 'bad league', season: 2026 })).toThrow();
   });

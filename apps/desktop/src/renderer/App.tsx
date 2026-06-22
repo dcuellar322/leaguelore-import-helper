@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LeagueLoreImportBundle } from '@leaguelore/import-contract';
-import type { DeepLinkSettings, HelperSettings, SessionStatus, UploadResult } from '../shared/ipc';
-import leagueLoreLogoUrl from '../../assets/league-lore-logo.svg';
+import type { DeepLinkSettings, HelperSettings, RuntimeConfig, SessionStatus, UploadResult } from '../shared/ipc';
+import { currentSeasonYear, defaultLeagueLoreApiBaseUrl } from '../shared/environment';
+import leagueLoreLogoUrl from '../../assets/league-lore-mark.png';
 
 type Step = 'setup' | 'signin' | 'preview' | 'upload';
 
@@ -14,10 +15,23 @@ const DEFAULT_STATUS: SessionStatus = {
   lastCheckedAt: new Date().toISOString()
 };
 
+const DEFAULT_SETTINGS: HelperSettings = {
+  apiBaseUrl: defaultLeagueLoreApiBaseUrl(true),
+  importToken: '',
+  leagueId: ''
+};
+
+const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
+  apiBaseUrl: DEFAULT_SETTINGS.apiBaseUrl,
+  isDevelopment: false,
+  mockImportsEnabled: false
+};
+
 export default function App() {
   const [version, setVersion] = useState('');
+  const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfig>(DEFAULT_RUNTIME_CONFIG);
   const [step, setStep] = useState<Step>('setup');
-  const [settings, setSettings] = useState<HelperSettings>({ apiBaseUrl: 'http://localhost:8000', importToken: '', leagueId: '', season: new Date().getFullYear() });
+  const [settings, setSettings] = useState<HelperSettings>(DEFAULT_SETTINGS);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>(DEFAULT_STATUS);
   const [bundle, setBundle] = useState<LeagueLoreImportBundle | null>(null);
   const [busy, setBusy] = useState(false);
@@ -35,6 +49,10 @@ export default function App() {
     const unsubscribe = window.leagueLore.onDeepLink(applyDeepLink);
 
     void window.leagueLore.appVersion().then(setVersion);
+    void window.leagueLore.runtimeConfig().then((config) => {
+      setRuntimeConfig(config);
+      setSettings((current) => ({ ...current, apiBaseUrl: deepLinkSettingsRef.current?.apiBaseUrl ?? config.apiBaseUrl }));
+    });
     void window.leagueLore.getSettings().then((loaded) => {
       const deepLinkSettings = deepLinkSettingsRef.current;
       setSettings(deepLinkSettings ? { ...loaded, ...deepLinkSettings } : loaded);
@@ -47,7 +65,8 @@ export default function App() {
     return unsubscribe;
   }, []);
 
-  const canImport = useMemo(() => Boolean(settings.leagueId.trim()) && settings.season >= 2000, [settings]);
+  const seasonIsValid = useMemo(() => settings.season === undefined || (Number.isInteger(settings.season) && settings.season >= 2000 && settings.season <= 2100), [settings.season]);
+  const canImport = useMemo(() => Boolean(settings.leagueId.trim()) && seasonIsValid, [settings.leagueId, seasonIsValid]);
 
   async function refreshStatus() {
     const status = await window.leagueLore.getEspnSessionStatus();
@@ -99,7 +118,7 @@ export default function App() {
     setUploadResult(null);
     try {
       await persistSettings();
-      const result = await window.leagueLore.createMockImport({ leagueId: settings.leagueId || 'mock-league', season: settings.season });
+      const result = await window.leagueLore.createMockImport({ leagueId: settings.leagueId || 'mock-league', season: settings.season ?? currentSeasonYear() });
       setBundle(result.bundle);
       setStep('preview');
       setNotice('Mock bundle created. Use this to test LeagueLore API integration without ESPN.');
@@ -129,6 +148,10 @@ export default function App() {
     setBusy(true);
     setNotice(null);
     try {
+      if (!settings.importToken.trim()) {
+        setNotice('Open this helper from LeagueLore to upload a preview. You can still save the JSON locally.');
+        return;
+      }
       await persistSettings();
       const result = await window.leagueLore.uploadBundle({
         apiBaseUrl: settings.apiBaseUrl,
@@ -180,7 +203,7 @@ export default function App() {
 
       <section className="panel layout">
         <aside className="steps">
-          <StepButton active={step === 'setup'} number="1" title="Setup" body="League, season, and LeagueLore session" onClick={() => setStep('setup')} />
+          <StepButton active={step === 'setup'} number="1" title="Setup" body="League and optional start year" onClick={() => setStep('setup')} />
           <StepButton active={step === 'signin'} number="2" title="ESPN Sign-in" body="Authenticate directly with ESPN" onClick={() => setStep('signin')} />
           <StepButton active={step === 'preview'} number="3" title="Preview" body="Validate and inspect local bundle" onClick={() => setStep('preview')} />
           <StepButton active={step === 'upload'} number="4" title="Send" body="Upload or save JSON" onClick={() => setStep('upload')} />
@@ -189,7 +212,7 @@ export default function App() {
         <div className="content">
           {notice && <div className="notice">{notice}</div>}
           {step === 'setup' && (
-            <SetupStep settings={settings} setSettings={setSettings} busy={busy} onContinue={() => setStep('signin')} onMock={importMock} />
+            <SetupStep settings={settings} setSettings={setSettings} busy={busy} canContinue={canImport} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onContinue={() => setStep('signin')} onMock={importMock} />
           )}
           {step === 'signin' && (
             <SignInStep
@@ -202,10 +225,11 @@ export default function App() {
               onClear={clearSession}
               onImport={importEspn}
               onMock={importMock}
+              mockImportsEnabled={runtimeConfig.mockImportsEnabled}
             />
           )}
-          {step === 'preview' && <PreviewStep bundle={bundle} busy={busy} onSave={saveBundle} onUpload={upload} />}
-          {step === 'upload' && <UploadStep bundle={bundle} result={uploadResult} busy={busy} onSave={saveBundle} onUpload={upload} />}
+          {step === 'preview' && <PreviewStep bundle={bundle} busy={busy} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} />}
+          {step === 'upload' && <UploadStep bundle={bundle} result={uploadResult} busy={busy} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} />}
         </div>
       </section>
     </main>
@@ -232,34 +256,41 @@ function StepButton({ active, number, title, body, onClick }: { active: boolean;
   );
 }
 
-function SetupStep({ settings, setSettings, busy, onContinue, onMock }: { settings: HelperSettings; setSettings: (s: HelperSettings) => void; busy: boolean; onContinue: () => void; onMock: () => void }) {
+function SetupStep({ settings, setSettings, busy, canContinue, mockImportsEnabled, onContinue, onMock }: {
+  settings: HelperSettings;
+  setSettings: (s: HelperSettings) => void;
+  busy: boolean;
+  canContinue: boolean;
+  mockImportsEnabled: boolean;
+  onContinue: () => void;
+  onMock: () => void;
+}) {
+  function updateSeason(value: string) {
+    setSettings({ ...settings, season: value.trim() ? Number(value) : undefined });
+  }
+
   return (
     <section>
       <h2>Start with your LeagueLore import session</h2>
-      <p className="muted">In production, LeagueLore should open this helper through a deep link and prefill the API URL and short-lived import token.</p>
+      <p className="muted">Open this helper from LeagueLore to preload the import session. The connection details stay hidden.</p>
       <div className="form-grid">
-        <Field label="LeagueLore API URL">
-          <input value={settings.apiBaseUrl} onChange={(event) => setSettings({ ...settings, apiBaseUrl: event.target.value })} placeholder="https://www.leagueloreapp.com" />
-        </Field>
-        <Field label="Import token">
-          <input value={settings.importToken} onChange={(event) => setSettings({ ...settings, importToken: event.target.value })} placeholder="Created by LeagueLore" />
-        </Field>
         <Field label="ESPN League ID">
           <input value={settings.leagueId} onChange={(event) => setSettings({ ...settings, leagueId: event.target.value })} placeholder="123456" />
         </Field>
-        <Field label="Season">
-          <input type="number" value={settings.season} onChange={(event) => setSettings({ ...settings, season: Number(event.target.value) })} />
+        <Field label="Season start year (optional)">
+          <input type="number" inputMode="numeric" min="2000" max="2100" value={settings.season ?? ''} onChange={(event) => updateSeason(event.target.value)} />
+          <small>Leave blank when you do not want to limit the history import into LeagueLore workspace by start year.</small>
         </Field>
       </div>
       <div className="actions">
-        <button className="primary" disabled={busy} onClick={onContinue}>Continue to ESPN Sign-in</button>
-        <button disabled={busy} onClick={onMock}>Create Mock Import</button>
+        <button className="primary" disabled={busy || !canContinue} onClick={onContinue}>Continue to ESPN Sign-in</button>
+        {mockImportsEnabled && <button disabled={busy} onClick={onMock}>Create Mock Import</button>}
       </div>
     </section>
   );
 }
 
-function SignInStep({ settings, status, busy, canImport, onOpenEspn, onRefresh, onClear, onImport, onMock }: {
+function SignInStep({ settings, status, busy, canImport, onOpenEspn, onRefresh, onClear, onImport, onMock, mockImportsEnabled }: {
   settings: HelperSettings;
   status: SessionStatus;
   busy: boolean;
@@ -269,6 +300,7 @@ function SignInStep({ settings, status, busy, canImport, onOpenEspn, onRefresh, 
   onClear: () => void;
   onImport: () => void;
   onMock: () => void;
+  mockImportsEnabled: boolean;
 }) {
   return (
     <section>
@@ -283,20 +315,20 @@ function SignInStep({ settings, status, busy, canImport, onOpenEspn, onRefresh, 
         <div className={`status-pill ${status.isSignedIn ? 'good' : 'warn'}`}>{status.isSignedIn ? 'Ready' : 'Needs sign-in'}</div>
       </div>
       <div className="actions">
-        <button className="primary" disabled={busy || !settings.leagueId} onClick={onOpenEspn}>Open ESPN Sign-in</button>
+        <button className="primary" disabled={busy || !canImport} onClick={onOpenEspn}>Open ESPN Sign-in</button>
         <button disabled={busy} onClick={onRefresh}>Check ESPN Session</button>
         <button disabled={busy} onClick={onClear}>Clear ESPN Session</button>
       </div>
       <div className="actions split-actions">
         <button className="primary" disabled={busy || !canImport || !status.isSignedIn} onClick={onImport}>Import from ESPN</button>
-        <button disabled={busy} onClick={onMock}>Create Mock Import Instead</button>
+        {mockImportsEnabled && <button disabled={busy} onClick={onMock}>Create Mock Import Instead</button>}
       </div>
     </section>
   );
 }
 
-function PreviewStep({ bundle, busy, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; busy: boolean; onSave: () => void; onUpload: () => void }) {
-  if (!bundle) return <EmptyState title="No bundle yet" body="Import from ESPN or create a mock import first." />;
+function PreviewStep({ bundle, busy, mockImportsEnabled, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; busy: boolean; mockImportsEnabled: boolean; onSave: () => void; onUpload: () => void }) {
+  if (!bundle) return <EmptyState title="No bundle yet" body={mockImportsEnabled ? 'Import from ESPN or create a mock import first.' : 'Import from ESPN first.'} />;
   return (
     <section>
       <h2>Review import bundle</h2>
@@ -314,8 +346,8 @@ function PreviewStep({ bundle, busy, onSave, onUpload }: { bundle: LeagueLoreImp
   );
 }
 
-function UploadStep({ bundle, result, busy, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; result: UploadResult | null; busy: boolean; onSave: () => void; onUpload: () => void }) {
-  if (!bundle) return <EmptyState title="No bundle yet" body="Import from ESPN or create a mock import first." />;
+function UploadStep({ bundle, result, busy, mockImportsEnabled, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; result: UploadResult | null; busy: boolean; mockImportsEnabled: boolean; onSave: () => void; onUpload: () => void }) {
+  if (!bundle) return <EmptyState title="No bundle yet" body={mockImportsEnabled ? 'Import from ESPN or create a mock import first.' : 'Import from ESPN first.'} />;
   return (
     <section>
       <h2>Send to LeagueLore</h2>

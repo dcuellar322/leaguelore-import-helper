@@ -13,12 +13,12 @@ export type HelperSettings = {
   apiBaseUrl: string;
   importToken: string;
   leagueId: string;
-  season: number;
+  season?: number;
 };
 
 export type ImportParams = {
   leagueId: string;
-  season: number;
+  season?: number;
   importSessionId?: string;
 };
 
@@ -40,10 +40,17 @@ export type ImportResult = {
   warnings: string[];
 };
 
+export type RuntimeConfig = {
+  apiBaseUrl: string;
+  isDevelopment: boolean;
+  mockImportsEnabled: boolean;
+};
+
 export type DeepLinkSettings = Partial<HelperSettings>;
 
 export type LeagueLoreBridge = {
   appVersion: () => Promise<string>;
+  runtimeConfig: () => Promise<RuntimeConfig>;
   rendererReady: () => Promise<DeepLinkSettings | null>;
   getSettings: () => Promise<HelperSettings>;
   saveSettings: (settings: HelperSettings) => Promise<HelperSettings>;

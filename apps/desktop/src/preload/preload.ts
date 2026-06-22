@@ -4,6 +4,7 @@ import type { LeagueLoreImportBundle } from '@leaguelore/import-contract';
 
 const bridge: LeagueLoreBridge = {
   appVersion: () => ipcRenderer.invoke('app:version'),
+  runtimeConfig: () => ipcRenderer.invoke('app:runtime-config'),
   rendererReady: () => ipcRenderer.invoke('app:renderer-ready'),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings: HelperSettings) => ipcRenderer.invoke('settings:save', settings),

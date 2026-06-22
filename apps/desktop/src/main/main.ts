@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { platform } from 'node:process';
 import { createMockImportBundle, validateImportBundle } from '@leaguelore/import-contract';
 import type { DeepLinkSettings, HelperSettings, ImportParams, UploadParams } from '../shared/ipc.js';
+import { currentSeasonYear, defaultLeagueLoreApiBaseUrl } from '../shared/environment.js';
 import { hardenRendererNavigation } from './security.js';
 import { readSettings, saveSettings } from './settings.js';
 import { clearEspnSession, getEspnSession, getEspnSessionStatus } from './espn/cookies.js';
@@ -147,6 +148,11 @@ app.on('activate', () => {
 
 function registerIpcHandlers(): void {
   handleTrusted('app:version', () => app.getVersion());
+  handleTrusted('app:runtime-config', () => ({
+    apiBaseUrl: process.env.LEAGUELORE_API_BASE ?? defaultLeagueLoreApiBaseUrl(app.isPackaged),
+    isDevelopment: !app.isPackaged,
+    mockImportsEnabled: !app.isPackaged
+  }));
   handleTrusted('app:renderer-ready', () => {
     rendererReady = true;
     const settings = pendingDeepLink;
@@ -163,10 +169,11 @@ function registerIpcHandlers(): void {
   handleTrusted('espn:clear-session', () => clearEspnSession());
   handleTrusted('espn:import', async (params: ImportParams) => {
     const parsedParams = EspnImportParamsSchema.parse(params);
-    const payload = await fetchEspnLeaguePayload({ leagueId: parsedParams.leagueId, season: parsedParams.season });
+    const season = parsedParams.season ?? currentSeasonYear();
+    const payload = await fetchEspnLeaguePayload({ leagueId: parsedParams.leagueId, season });
     const bundle = transformEspnPayload(payload, {
       leagueId: parsedParams.leagueId,
-      season: parsedParams.season,
+      season,
       importSessionId: parsedParams.importSessionId,
       helperVersion: app.getVersion(),
       platform
@@ -175,6 +182,7 @@ function registerIpcHandlers(): void {
   });
   handleTrusted('mock:import', (params: ImportParams) => {
     const parsedParams = MockImportParamsSchema.parse(params);
+    const season = parsedParams.season ?? currentSeasonYear();
     const bundle = createMockImportBundle({
       metadata: {
         contractVersion: '0.1.0',
@@ -191,7 +199,7 @@ function registerIpcHandlers(): void {
       league: {
         externalRef: { provider: 'mock', externalId: parsedParams.leagueId },
         name: 'LeagueLore Demo League',
-        season: parsedParams.season,
+        season,
         size: 2,
         visibility: 'private',
         settings: { mode: 'mock' }
