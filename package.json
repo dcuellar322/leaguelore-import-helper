@@ -17,8 +17,14 @@
     "build": "npm run build:contract && npm -w apps/desktop run build",
     "make": "npm run build:contract && npm -w apps/desktop run make",
     "package": "npm run build:contract && npm -w apps/desktop run package",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "typecheck": "npm run build:contract && npm --workspaces run typecheck",
     "build:contract": "npm -w packages/import-contract run build && npm -w packages/import-contract run schema",
     "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.9",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LeagueLoreImportBundle } from '@leaguelore/import-contract';
-import type { HelperSettings, SessionStatus, UploadResult } from '../shared/ipc';
+import type { DeepLinkSettings, HelperSettings, SessionStatus, UploadResult } from '../shared/ipc';
+import leagueLoreLogoUrl from '../../assets/league-lore-logo.svg';
 
 type Step = 'setup' | 'signin' | 'preview' | 'upload';
 
@@ -22,17 +23,25 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const deepLinkSettingsRef = useRef<DeepLinkSettings | null>(null);
 
   useEffect(() => {
-    void window.leagueLore.appVersion().then(setVersion);
-    void window.leagueLore.getSettings().then((loaded) => {
-      setSettings(loaded);
-    });
-    void refreshStatus();
-
-    const unsubscribe = window.leagueLore.onDeepLink((parsed) => {
+    function applyDeepLink(parsed: DeepLinkSettings) {
+      deepLinkSettingsRef.current = { ...(deepLinkSettingsRef.current ?? {}), ...parsed };
       setSettings((current) => ({ ...current, ...parsed }));
       setNotice('Import session loaded from LeagueLore. Review the details, then continue.');
+    }
+
+    const unsubscribe = window.leagueLore.onDeepLink(applyDeepLink);
+
+    void window.leagueLore.appVersion().then(setVersion);
+    void window.leagueLore.getSettings().then((loaded) => {
+      const deepLinkSettings = deepLinkSettingsRef.current;
+      setSettings(deepLinkSettings ? { ...loaded, ...deepLinkSettings } : loaded);
+    });
+    void refreshStatus();
+    void window.leagueLore.rendererReady().then((pendingDeepLink) => {
+      if (pendingDeepLink) applyDeepLink(pendingDeepLink);
     });
 
     return unsubscribe;
@@ -153,7 +162,7 @@ export default function App() {
   return (
     <main className="shell">
       <section className="hero">
-        <div className="brand-mark">LL</div>
+        <img className="brand-logo" src={leagueLoreLogoUrl} alt="LeagueLore" />
         <div>
           <p className="eyebrow">LeagueLore Import Helper {version ? `v${version}` : ''}</p>
           <h1>Import ESPN fantasy data without handing over your cookies.</h1>

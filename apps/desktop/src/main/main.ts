@@ -16,6 +16,7 @@ import {
   EspnImportParamsSchema,
   EspnOpenLoginParamsSchema,
   MockImportParamsSchema,
+  findDeepLinkArg,
   isAllowedLocalRendererUrl,
   parseDeepLinkSettings
 } from './validation.js';
@@ -26,6 +27,7 @@ if (started) {
 
 let mainWindow: BrowserWindow | null = null;
 let pendingDeepLink: DeepLinkSettings | null = null;
+let rendererReady = false;
 
 const protocolName = 'leaguelore-import';
 
@@ -43,7 +45,7 @@ if (!gotTheLock) {
 }
 
 app.on('second-instance', (_event, argv) => {
-  const url = argv.find((arg) => arg.startsWith(`${protocolName}://`));
+  const url = findDeepLinkArg(argv);
   if (url) acceptDeepLink(url);
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
@@ -68,13 +70,14 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 async function createWindow(): Promise<void> {
+  rendererReady = false;
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 860,
     minWidth: 1040,
     minHeight: 720,
     title: 'LeagueLore Import Helper',
-    backgroundColor: '#07170f',
+    backgroundColor: '#061329',
     show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/preload.js'),
@@ -88,6 +91,13 @@ async function createWindow(): Promise<void> {
 
   hardenRendererNavigation(mainWindow.webContents, isTrustedRendererUrl);
 
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    rendererReady = false;
+  });
+  mainWindow.webContents.on('did-start-loading', () => {
+    rendererReady = false;
+  });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
   const rendererDevUrl = getRendererDevUrl();
@@ -97,10 +107,6 @@ async function createWindow(): Promise<void> {
     await mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  if (pendingDeepLink) {
-    notifyDeepLink(pendingDeepLink);
-    pendingDeepLink = null;
-  }
 }
 
 function acceptDeepLink(url: string): void {
@@ -110,7 +116,7 @@ function acceptDeepLink(url: string): void {
 }
 
 function notifyDeepLink(settings: DeepLinkSettings): void {
-  if (!mainWindow || mainWindow.isDestroyed()) {
+  if (!mainWindow || mainWindow.isDestroyed() || !rendererReady) {
     pendingDeepLink = settings;
     return;
   }
@@ -122,6 +128,8 @@ app.whenReady().then(async () => {
   espnSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
 
   registerIpcHandlers();
+  const initialDeepLink = findDeepLinkArg(process.argv);
+  if (initialDeepLink) acceptDeepLink(initialDeepLink);
   await createWindow();
 });
 
@@ -139,6 +147,12 @@ app.on('activate', () => {
 
 function registerIpcHandlers(): void {
   handleTrusted('app:version', () => app.getVersion());
+  handleTrusted('app:renderer-ready', () => {
+    rendererReady = true;
+    const settings = pendingDeepLink;
+    pendingDeepLink = null;
+    return settings;
+  });
   handleTrusted('settings:get', () => readSettings());
   handleTrusted('settings:save', (settings: HelperSettings) => saveSettings(settings));
   handleTrusted('espn:open-login', (params: Pick<ImportParams, 'leagueId' | 'season'>) => {

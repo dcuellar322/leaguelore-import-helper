@@ -49,6 +49,18 @@ Run type checks:
 npm run typecheck
 ```
 
+Run tests:
+
+```bash
+npm test
+```
+
+Run tests with the coverage gate:
+
+```bash
+npm run test:coverage
+```
+
 Build the app:
 
 ```bash
@@ -68,6 +80,23 @@ npm run make
 ```
 
 macOS and Windows release builds should be signed before public distribution.
+
+## Launching From LeagueLore
+
+LeagueLore can prefill an import session by opening the app with the registered custom protocol:
+
+```text
+leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=<import-token>&leagueId=<espn-league-id>&season=2025
+```
+
+Supported query parameters:
+
+- `token`: short-lived LeagueLore import token
+- `leagueId`: numeric ESPN league ID
+- `season`: ESPN season year, for example `2025`
+- `apiBase`: optional LeagueLore API base URL
+
+LeagueLore should include `season` whenever it already knows the target league season. If `season` is omitted, the helper falls back to saved settings or the current year.
 
 ## Repository Layout
 

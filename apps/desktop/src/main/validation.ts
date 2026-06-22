@@ -3,6 +3,7 @@ import type { HelperSettings } from '../shared/ipc.js';
 
 const PRODUCTION_API_HOSTS = new Set(['leagueloreapp.com', 'www.leagueloreapp.com']);
 const LOCAL_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const DEEP_LINK_PROTOCOL = 'leaguelore-import:';
 
 type UrlValidationOptions = {
   allowLocalhost: boolean;
@@ -57,6 +58,10 @@ export function isAllowedLocalRendererUrl(input: string): boolean {
   }
 }
 
+export function findDeepLinkArg(argv: string[]): string | undefined {
+  return argv.find((arg) => arg.startsWith(DEEP_LINK_PROTOCOL));
+}
+
 export function createSettingsSchema(options: UrlValidationOptions) {
   return z.object({
     apiBaseUrl: z.string().transform((value) => normalizeApiBaseUrl(value, options)),
@@ -94,7 +99,7 @@ export function createUploadParamsSchema(options: UrlValidationOptions) {
 export function parseDeepLinkSettings(input: string, options: UrlValidationOptions): Partial<HelperSettings> | null {
   try {
     const parsed = new URL(input);
-    if (parsed.protocol !== 'leaguelore-import:') return null;
+    if (parsed.protocol !== DEEP_LINK_PROTOCOL) return null;
 
     const settings: Partial<HelperSettings> = {};
     const apiBaseUrl = parsed.searchParams.get('apiBase');

@@ -59,7 +59,7 @@ export function transformEspnPayload(payload: unknown, context: TransformContext
       },
       name: leagueName,
       season: context.season,
-      size: teams.length || numberOrUndefined(settings.size),
+      size: teams.length || positiveIntegerOrUndefined(settings.size),
       scoringPeriodId: numberOrUndefined(data.scoringPeriodId),
       scoringType: asString(settings.scoringSettings && asRecord(settings.scoringSettings).scoringType),
       visibility: asBoolean(settings.isPublic) ? 'public' : 'unknown',
@@ -94,8 +94,8 @@ function mapTeam(input: unknown, leagueExternalId: string): LeagueLoreImportTeam
     displayName,
     ownerDisplayNames: owners,
     logoUrl: maybeUrl(asString(team.logo)),
-    playoffSeed: numberOrUndefined(team.playoffSeed),
-    finalStanding: numberOrUndefined(team.finalStanding)
+    playoffSeed: positiveIntegerOrUndefined(team.playoffSeed),
+    finalStanding: positiveIntegerOrUndefined(team.finalStanding)
   };
 }
 
@@ -176,7 +176,7 @@ function mapMatchupSide(input: unknown) {
 
 function mapDraftPick(input: unknown, leagueExternalId: string, season: number): LeagueLoreDraftPick | null {
   const pick = asRecord(input);
-  const overallPick = numberOrUndefined(pick.overallPickNumber) ?? numberOrUndefined(pick.pickNumber);
+  const overallPick = positiveIntegerOrUndefined(pick.overallPickNumber) ?? positiveIntegerOrUndefined(pick.pickNumber);
   const teamExternalId = asString(pick.teamId);
   const player = mapPlayer(pick.playerPoolEntry ? asRecord(pick.playerPoolEntry).player : pick.player);
 
@@ -186,8 +186,8 @@ function mapDraftPick(input: unknown, leagueExternalId: string, season: number):
     externalRef: overallPick ? { provider: 'espn', externalId: `${leagueExternalId}-${season}-draft-${overallPick}`, rawKind: 'draftPick' } : undefined,
     leagueExternalId,
     season,
-    round: numberOrUndefined(pick.roundId),
-    roundPick: numberOrUndefined(pick.roundPickNumber),
+    round: positiveIntegerOrUndefined(pick.roundId),
+    roundPick: positiveIntegerOrUndefined(pick.roundPickNumber),
     overallPick,
     teamExternalId,
     ...(player ? { player } : {}),
@@ -254,6 +254,11 @@ function numberOrUndefined(input: unknown): number | undefined {
   if (typeof input === 'number' && Number.isFinite(input)) return input;
   if (typeof input === 'string' && input.trim() && Number.isFinite(Number(input))) return Number(input);
   return undefined;
+}
+
+function positiveIntegerOrUndefined(input: unknown): number | undefined {
+  const value = numberOrUndefined(input);
+  return value && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 function dateFromMaybeEpoch(input: unknown): string | undefined {

@@ -27,7 +27,7 @@ export async function openEspnLoginWindow(params: OpenEspnLoginParams): Promise<
     minWidth: 900,
     minHeight: 700,
     show: false,
-    backgroundColor: '#07170f',
+    backgroundColor: '#061329',
     webPreferences: {
       partition: 'leaguelore-espn-import',
       nodeIntegration: false,

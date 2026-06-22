@@ -44,6 +44,7 @@ export type DeepLinkSettings = Partial<HelperSettings>;
 
 export type LeagueLoreBridge = {
   appVersion: () => Promise<string>;
+  rendererReady: () => Promise<DeepLinkSettings | null>;
   getSettings: () => Promise<HelperSettings>;
   saveSettings: (settings: HelperSettings) => Promise<HelperSettings>;
   openEspnLogin: (params: Pick<ImportParams, 'leagueId' | 'season'>) => Promise<void>;
