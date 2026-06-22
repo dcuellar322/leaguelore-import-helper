@@ -1,0 +1,24 @@
+{
+  "name": "leaguelore-import-helper-repo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Desktop ESPN import helper for LeagueLore.",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "npm run build:contract && npm -w apps/desktop run dev",
+    "build": "npm run build:contract && npm -w apps/desktop run build",
+    "make": "npm run build:contract && npm -w apps/desktop run make",
+    "package": "npm run build:contract && npm -w apps/desktop run package",
+    "typecheck": "npm run build:contract && npm --workspaces run typecheck",
+    "build:contract": "npm -w packages/import-contract run build && npm -w packages/import-contract run schema",
+    "clean": "node scripts/clean.mjs"
+  }
+}

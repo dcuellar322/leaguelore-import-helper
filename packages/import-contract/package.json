@@ -1,0 +1,23 @@
+{
+  "name": "@leaguelore/import-contract",
+  "version": "0.1.0",
+  "description": "Shared LeagueLore import bundle contract.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "schema": "node dist/generate-json-schema.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

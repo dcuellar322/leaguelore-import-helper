@@ -1,0 +1,77 @@
+{
+  "name": "leaguelore-import-helper",
+  "productName": "LeagueLore Import Helper",
+  "version": "0.1.0",
+  "description": "Secure local ESPN import helper for LeagueLore.",
+  "main": "out/main/main.js",
+  "author": "David Cuellar",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"vite --config vite.renderer.config.ts\" \"vite build --config vite.main.config.ts --watch\" \"vite build --config vite.preload.config.ts --watch\" \"wait-on out/main/main.js out/preload/preload.js http://127.0.0.1:5173 && cross-env ELECTRON_RENDERER_URL=http://127.0.0.1:5173 electron .\"",
+    "build": "vite build --config vite.main.config.ts && vite build --config vite.preload.config.ts && vite build --config vite.renderer.config.ts",
+    "package": "npm run build && electron-builder --dir",
+    "make": "npm run build && electron-builder",
+    "publish": "npm run build && electron-builder --publish always",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "build": {
+    "appId": "app.leaguelore.import-helper",
+    "productName": "LeagueLore Import Helper",
+    "asar": true,
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "protocols": [
+      {
+        "name": "LeagueLore Import",
+        "schemes": [
+          "leaguelore-import"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.sports",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "deb",
+        "rpm"
+      ],
+      "category": "Game",
+      "maintainer": "David Cuellar"
+    }
+  },
+  "dependencies": {
+    "@leaguelore/import-contract": "file:../../packages/import-contract",
+    "electron-squirrel-startup": "^1.0.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "42.4.1",
+    "electron-builder": "^26.15.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "wait-on": "^9.0.10"
+  }
+}

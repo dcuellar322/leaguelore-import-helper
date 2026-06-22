@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm audit
+      - run: npm run typecheck
+      - run: npm run make
+      - name: Generate checksums
+        shell: bash
+        run: |
+          find apps/desktop/dist -maxdepth 5 -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS-${{ runner.os }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: leaguelore-import-helper-${{ runner.os }}
+          path: |
+            apps/desktop/dist/**
+            SHA256SUMS-${{ runner.os }}.txt
