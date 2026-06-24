@@ -50,10 +50,10 @@ The app uploads a `LeagueLoreImportBundle` JSON document. It includes league, te
 
 ## Recommended release posture
 
-Before sending to beta users:
+Before sending to non-technical beta users, treat these items as release blockers:
 
 1. Publish the helper source publicly.
 2. Sign and notarize macOS builds.
 3. Sign Windows builds.
-4. Publish SHA-256 checksums with each release.
+4. Publish SHA-256 checksums with each GitHub release.
 5. Keep an easy-to-read privacy page linked from LeagueLore's import screen.

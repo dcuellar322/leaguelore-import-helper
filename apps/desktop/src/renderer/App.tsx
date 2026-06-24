@@ -331,12 +331,15 @@ function PreviewStep({ bundle, busy, mockImportsEnabled, onSave, onUpload }: { b
   if (!bundle) return <EmptyState title="No bundle yet" body={mockImportsEnabled ? 'Import from ESPN or create a mock import first.' : 'Import from ESPN first.'} />;
   return (
     <section>
-      <h2>Review import bundle</h2>
-      <p className="muted">This bundle has been validated against the shared LeagueLore import contract.</p>
+      <h2>What gets uploaded?</h2>
+      <p className="muted">
+        Review this validated LeagueLore import bundle before sending it to LeagueLore. Only this
+        fantasy-football data is uploaded; ESPN passwords and raw session cookies are not sent.
+      </p>
       <BundleSummary bundle={bundle} />
       <div className="actions">
         <button disabled={busy} onClick={onSave}>Save JSON Locally</button>
-        <button className="primary" disabled={busy} onClick={onUpload}>Upload to LeagueLore Preview</button>
+        <button className="primary" disabled={busy} onClick={onUpload}>Upload reviewed bundle</button>
       </div>
       <details className="json-preview">
         <summary>Inspect JSON</summary>
@@ -361,7 +364,7 @@ function UploadStep({ bundle, result, busy, mockImportsEnabled, onSave, onUpload
       )}
       <div className="actions">
         <button disabled={busy} onClick={onSave}>Save JSON Locally</button>
-        <button className="primary" disabled={busy} onClick={onUpload}>Upload Again</button>
+        <button className="primary" disabled={busy} onClick={onUpload}>Upload reviewed bundle again</button>
       </div>
     </section>
   );

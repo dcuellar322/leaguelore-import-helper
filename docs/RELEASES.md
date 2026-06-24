@@ -10,6 +10,11 @@ npm run make
 
 Artifacts will be generated under `apps/desktop/dist/`.
 
+Before non-technical beta users receive builds, macOS and Windows artifacts must be signed,
+macOS artifacts must be notarized, and each GitHub release must include SHA-256 checksums.
+Treat missing signing/notarization or missing checksums as release blockers for beta and public
+distribution.
+
 ## macOS signing and notarization
 
 Set these secrets in GitHub Actions or your local environment:
@@ -43,7 +48,7 @@ After building:
 find apps/desktop/dist -maxdepth 5 -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS.txt
 ```
 
-Attach `SHA256SUMS.txt` to GitHub Releases.
+Attach `SHA256SUMS.txt` to every GitHub Release alongside the platform artifacts.
 
 ## Suggested release naming
 
