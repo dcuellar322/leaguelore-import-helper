@@ -1,15 +1,9 @@
 # Icons
 
-`icon.svg` is included as the source icon. Before a signed production release, generate the platform-specific files expected by Electron Builder:
+`icon.svg` is the editable source icon and `league-lore-mark.png` is the 1024px packaging source. Electron Builder is configured to derive the platform-specific application icons from the PNG during each native build:
 
 - `icon.icns` for macOS
 - `icon.ico` for Windows
 - `icon.png` for Linux
 
-Suggested tools:
-
-```bash
-npx electron-icon-maker --input=assets/icon.svg --output=assets/generated
-```
-
-Then update the `build` block in `apps/desktop/package.json` if needed.
+The release workflow builds each platform natively and fails if an installer is not produced.

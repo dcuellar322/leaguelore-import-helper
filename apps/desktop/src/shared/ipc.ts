@@ -12,6 +12,7 @@ export type SessionStatus = {
 export type HelperSettings = {
   apiBaseUrl: string;
   importToken: string;
+  importSessionId?: string;
   leagueId: string;
   season?: number;
 };
@@ -31,7 +32,10 @@ export type UploadParams = {
 export type UploadResult = {
   ok: boolean;
   status: number;
+  code: 'ok' | 'unauthorized' | 'expired' | 'unavailable' | 'timeout' | 'offline' | 'canceled' | 'rejected';
   message: string;
+  retryable: boolean;
+  continuationUrl?: string;
   response?: unknown;
 };
 
@@ -46,6 +50,13 @@ export type RuntimeConfig = {
   mockImportsEnabled: boolean;
 };
 
+export type UpdateInfo = {
+  status: 'available' | 'current' | 'unavailable';
+  currentVersion: string;
+  latestVersion?: string;
+  releaseUrl?: string;
+};
+
 export type DeepLinkSettings = Partial<HelperSettings>;
 
 export type LeagueLoreBridge = {
@@ -58,8 +69,15 @@ export type LeagueLoreBridge = {
   getEspnSessionStatus: () => Promise<SessionStatus>;
   clearEspnSession: () => Promise<void>;
   importFromEspn: (params: ImportParams) => Promise<ImportResult>;
+  cancelEspnImport: () => Promise<void>;
   createMockImport: (params: ImportParams) => Promise<ImportResult>;
   saveBundleToDisk: (bundle: LeagueLoreImportBundle) => Promise<{ canceled: boolean; filePath?: string }>;
   uploadBundle: (params: UploadParams) => Promise<UploadResult>;
+  cancelUpload: () => Promise<void>;
+  openLeagueLoreUrl: (url: string) => Promise<void>;
+  openUpdateUrl: (url: string) => Promise<void>;
+  openProjectUrl: (url: string) => Promise<void>;
+  checkForUpdates: () => Promise<UpdateInfo>;
+  saveDiagnostics: () => Promise<{ canceled: boolean; filePath?: string }>;
   onDeepLink: (callback: (settings: DeepLinkSettings) => void) => () => void;
 };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { transformEspnPayload } from './transform.js';
+import { sanitizedPrivateLeaguePayload } from './fixtures/sanitized-private-league.js';
 
 const context = {
   leagueId: '123456',
@@ -10,6 +11,14 @@ const context = {
 };
 
 describe('ESPN payload transform', () => {
+  it('normalizes a sanitized private-league response fixture', () => {
+    const bundle = transformEspnPayload(sanitizedPrivateLeaguePayload, { ...context, leagueId: '24681012' });
+    expect(bundle.league).toMatchObject({ name: 'Sanitized Fixture League', visibility: 'private', size: 2 });
+    expect(bundle.teams.map((team) => team.ownerDisplayNames[0])).toEqual(['Commissioner Example', 'Manager Example']);
+    expect(bundle.matchups[0]?.winnerTeamExternalId).toBe('2');
+    expect(bundle.draftPicks[0]?.player?.fullName).toBe('Fixture Quarterback');
+    expect(bundle.transactions[0]?.items[0]?.player?.fullName).toBe('Sample Running Back');
+  });
   it('normalizes league, team, roster, schedule, draft, and transaction data', () => {
     const bundle = transformEspnPayload({
       id: 123456,
@@ -19,8 +28,10 @@ describe('ESPN payload transform', () => {
         size: 0,
         isPublic: false,
         scoringSettings: { scoringType: 'H2H_POINTS' },
-        cookieToken: 'do-not-keep'
+        cookieToken: 'do-not-keep',
+        nested: { authorizationSecret: 'also-remove', harmless: true }
       },
+      members: [{ id: 'Commissioner', displayName: 'Demo Commissioner' }],
       teams: [
         {
           id: 1,
@@ -43,6 +54,7 @@ describe('ESPN payload transform', () => {
                     id: 1001,
                     firstName: 'Demo',
                     lastName: 'Quarterback',
+                    defaultPositionId: 1,
                     eligibleSlots: [0, 20],
                     proTeamId: 12,
                     jersey: 9
@@ -63,8 +75,9 @@ describe('ESPN payload transform', () => {
         {
           id: 77,
           matchupPeriodId: 1,
-          home: { teamId: 1, totalPoints: 120.5, winner: 'WIN' },
-          away: { teamId: 2, totalPoints: 111.2, winner: 'LOSS' },
+          winner: 'HOME',
+          home: { teamId: 1, totalPoints: 120.5 },
+          away: { teamId: 2, totalPoints: 111.2 },
           playoffTierType: 'NONE'
         }
       ],
@@ -77,7 +90,7 @@ describe('ESPN payload transform', () => {
             roundPickNumber: '1',
             teamId: 1,
             bidAmount: 12,
-            player: { id: 2002, fullName: 'Drafted Player' }
+            playerId: 1001
           }
         ]
       },
@@ -87,7 +100,7 @@ describe('ESPN payload transform', () => {
           type: 'FREEAGENT ADD',
           proposedDate: 1767225600,
           status: 'EXECUTED',
-          items: [{ type: 'FREEAGENT ADD', toTeamId: 1, player: { id: 3003, fullName: 'Free Agent' } }]
+          items: [{ type: 'FREEAGENT ADD', toTeamId: 1, playerId: 1001 }]
         }
       ]
     }, context);
@@ -98,19 +111,23 @@ describe('ESPN payload transform', () => {
       size: 2,
       scoringPeriodId: 4,
       scoringType: 'H2H_POINTS',
-      visibility: 'unknown'
+      visibility: 'private'
     });
     expect(bundle.league.settings).not.toHaveProperty('cookieToken');
+    expect(bundle.league.settings.nested).toEqual({ harmless: true });
     expect(bundle.teams[0]).toMatchObject({
       externalRef: { provider: 'espn', externalId: '1', rawKind: 'team' },
       displayName: 'League Lore',
+      ownerDisplayNames: ['Demo Commissioner'],
       finalStanding: 1
     });
     expect(bundle.teams[0]?.playoffSeed).toBeUndefined();
     expect(bundle.rosterEntries[0]?.player.fullName).toBe('Demo Quarterback');
+    expect(bundle.rosterEntries[0]).toMatchObject({ lineupSlot: 'QB', player: { positions: ['QB'] } });
     expect(bundle.matchups[0]?.winnerTeamExternalId).toBe('1');
-    expect(bundle.draftPicks[0]).toMatchObject({ overallPick: 1, round: 1, roundPick: 1 });
+    expect(bundle.draftPicks[0]).toMatchObject({ overallPick: 1, round: 1, roundPick: 1, player: { fullName: 'Demo Quarterback' } });
     expect(bundle.transactions[0]?.items[0]?.type).toBe('add');
+    expect(bundle.transactions[0]?.items[0]?.player?.fullName).toBe('Demo Quarterback');
   });
 
   it('falls back to context and warnings when ESPN returns sparse data', () => {
@@ -149,7 +166,8 @@ describe('ESPN payload transform', () => {
               }
             ]
           }
-        }
+        },
+        { teamId: '11', name: 'Away Team' }
       ],
       schedule: [
         {
@@ -181,7 +199,7 @@ describe('ESPN payload transform', () => {
 
     expect(bundle.league).toMatchObject({
       name: 'Fallback Name',
-      size: 1,
+      size: 2,
       visibility: 'public',
       settings: { harmless: 'kept' }
     });
@@ -205,5 +223,15 @@ describe('ESPN payload transform', () => {
     const bundle = transformEspnPayload({ settings: { size: '10' } }, context);
 
     expect(bundle.league.size).toBe(10);
+  });
+
+  it('preserves unresolved transaction player IDs and warns the user', () => {
+    const bundle = transformEspnPayload({
+      settings: { name: 'Player Lookup League' },
+      teams: [{ id: 1, name: 'Known Team' }],
+      transactions: [{ id: 99, items: [{ type: 'DROP', fromTeamId: 1, playerId: 777 }] }]
+    }, context);
+    expect(bundle.transactions[0]?.items[0]?.player).toMatchObject({ fullName: 'ESPN Player 777', externalRef: { externalId: '777' } });
+    expect(bundle.metadata.warnings).toContain('1 draft or transaction player names were unavailable; ESPN player IDs were preserved for matching.');
   });
 });

@@ -12,8 +12,11 @@ This project is not affiliated with, endorsed by, or sponsored by ESPN.
 - Keep ESPN passwords and raw session cookies local to the helper.
 - Validate import data against a shared TypeScript/Zod contract.
 - Export the generated JSON bundle before uploading.
+- Review teams and owners in human-readable form and include or exclude rosters, matchups, draft picks, and transactions.
 - Upload a validated bundle to a LeagueLore preview endpoint.
+- Return directly to the LeagueLore preview after a successful upload when the API supplies a continuation URL.
 - Clear the helper's ESPN session from inside the app.
+- Save a rotating privacy-safe diagnostic log and check for signed releases.
 
 ## Privacy and Security
 
@@ -82,23 +85,25 @@ npm run make
 ```
 
 macOS and Windows release builds should be signed before public distribution.
+The tag release workflow refuses to publish without signing credentials and produces macOS x64/arm64, Windows x64, and Linux x64 artifacts.
 
 ## Launching From LeagueLore
 
 LeagueLore can prefill an import session by opening the app with the registered custom protocol:
 
 ```text
-leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=<import-token>&leagueId=<espn-league-id>&season=2025
+leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=<one-time-import-token>&importSessionId=<session-id>&leagueId=<espn-league-id>&season=2025
 ```
 
 Supported query parameters:
 
-- `token`: short-lived LeagueLore import token
+- `token`: short-lived, one-time LeagueLore import token
+- `importSessionId`: optional non-secret import session identifier included in bundle metadata
 - `leagueId`: numeric ESPN league ID
 - `season`: optional ESPN season start year, for example `2025`
 - `apiBase`: optional LeagueLore API base URL
 
-LeagueLore should include `season` whenever the import flow has a season start year. If `season` is omitted, the helper uses the current ESPN season for the local ESPN request.
+LeagueLore should include `season` whenever the import flow has a season start year. If it is omitted, the helper uses the prior year before June and the current year from June onward. Manual users can paste a complete ESPN league URL to extract both the ID and season.
 
 ## Repository Layout
 
@@ -115,7 +120,7 @@ The shared `@leaguelore/import-contract` package defines the normalized import b
 
 ## Security Reports
 
-Please do not open public issues for vulnerabilities. Report security concerns privately to the project maintainer.
+Please do not open public issues for vulnerabilities. Use the repository's private security advisory form described in [docs/SECURITY.md](docs/SECURITY.md).
 
 ## License
 

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type ReactNode } from 'react';
 import type { LeagueLoreImportBundle } from '@leaguelore/import-contract';
-import type { DeepLinkSettings, HelperSettings, RuntimeConfig, SessionStatus, UploadResult } from '../shared/ipc';
+import type { DeepLinkSettings, HelperSettings, RuntimeConfig, SessionStatus, UpdateInfo, UploadResult } from '../shared/ipc';
 import { currentSeasonYear, defaultLeagueLoreApiBaseUrl } from '../shared/environment';
 import leagueLoreLogoUrl from '../../assets/league-lore-mark.png';
+import { createDeliveryBundle, DEFAULT_INCLUDED_CATEGORIES, parseEspnLeagueInput, type IncludedCategories, type OptionalImportCategory } from './import-review';
 
 type Step = 'setup' | 'signin' | 'preview' | 'upload';
 type BusyAction = 'opening-espn' | 'checking-session' | 'clearing-session' | 'importing' | 'mocking' | 'saving' | 'uploading';
@@ -43,6 +44,8 @@ export default function App() {
   const [busyAction, setBusyAction] = useState<BusyAction | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [includedCategories, setIncludedCategories] = useState<IncludedCategories>(DEFAULT_INCLUDED_CATEGORIES);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const deepLinkSettingsRef = useRef<DeepLinkSettings | null>(null);
 
   useEffect(() => {
@@ -75,16 +78,41 @@ export default function App() {
     void window.leagueLore.rendererReady().then((pendingDeepLink) => {
       if (pendingDeepLink) applyDeepLink(pendingDeepLink);
     });
+    void window.leagueLore.checkForUpdates().then(setUpdateInfo);
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (step !== 'signin' || sessionStatus.isSignedIn || busyAction === 'clearing-session') return;
+    let disposed = false;
+    const poll = async () => {
+      try {
+        const status = await window.leagueLore.getEspnSessionStatus();
+        if (disposed) return;
+        setSessionStatus(status);
+        if (status.isSignedIn) {
+          setNotice({ tone: 'success', title: 'ESPN session ready', message: 'Sign-in was detected automatically. You can import this season now.' });
+        }
+      } catch {
+        // Manual status checking remains available if a background poll fails.
+      }
+    };
+    const interval = window.setInterval(() => void poll(), 1_500);
+    return () => {
+      disposed = true;
+      window.clearInterval(interval);
+    };
+  }, [step, sessionStatus.isSignedIn, busyAction]);
 
   const seasonIsValid = useMemo(
     () => settings.season !== undefined && Number.isInteger(settings.season) && settings.season >= 2000 && settings.season <= 2100,
     [settings.season]
   );
-  const canImport = useMemo(() => Boolean(settings.leagueId.trim()) && seasonIsValid, [settings.leagueId, seasonIsValid]);
+  const leagueIdIsValid = /^\d{1,12}$/.test(settings.leagueId.trim());
+  const canImport = useMemo(() => leagueIdIsValid && seasonIsValid, [leagueIdIsValid, seasonIsValid]);
   const canUpload = Boolean(settings.importToken.trim());
+  const deliveryBundle = useMemo(() => bundle ? createDeliveryBundle(bundle, includedCategories) : null, [bundle, includedCategories]);
   const stepIndex = STEPS.indexOf(step);
 
   async function refreshStatus() {
@@ -139,8 +167,9 @@ export default function App() {
     setUploadResult(null);
     try {
       await persistSettings();
-      const result = await window.leagueLore.importFromEspn({ leagueId: settings.leagueId, season: settings.season });
+      const result = await window.leagueLore.importFromEspn({ leagueId: settings.leagueId, season: settings.season, importSessionId: settings.importSessionId });
       setBundle(result.bundle);
+      setIncludedCategories(DEFAULT_INCLUDED_CATEGORIES);
       setStep('preview');
       setNotice(result.warnings.length
         ? { tone: 'info', title: 'Import ready with notes', message: result.warnings.join(' ') }
@@ -158,8 +187,9 @@ export default function App() {
     setUploadResult(null);
     try {
       await persistSettings();
-      const result = await window.leagueLore.createMockImport({ leagueId: settings.leagueId || 'mock-league', season: settings.season ?? currentSeasonYear() });
+      const result = await window.leagueLore.createMockImport({ leagueId: settings.leagueId || 'mock-league', season: settings.season ?? currentSeasonYear(), importSessionId: settings.importSessionId });
       setBundle(result.bundle);
+      setIncludedCategories(DEFAULT_INCLUDED_CATEGORIES);
       setStep('preview');
       setNotice({ tone: 'info', title: 'Development preview', message: 'Mock data was created locally. No request was made to ESPN.' });
     } catch (error) {
@@ -170,11 +200,11 @@ export default function App() {
   }
 
   async function saveBundle() {
-    if (!bundle) return;
+    if (!deliveryBundle) return;
     setBusyAction('saving');
     setNotice(null);
     try {
-      const result = await window.leagueLore.saveBundleToDisk(bundle);
+      const result = await window.leagueLore.saveBundleToDisk(deliveryBundle);
       if (!result.canceled) {
         setNotice({ tone: 'success', title: 'JSON saved locally', message: result.filePath ?? 'Your import bundle was saved.' });
       }
@@ -186,7 +216,7 @@ export default function App() {
   }
 
   async function upload() {
-    if (!bundle) return;
+    if (!deliveryBundle) return;
     if (!canUpload) {
       setNotice({
         tone: 'info',
@@ -202,16 +232,51 @@ export default function App() {
       const result = await window.leagueLore.uploadBundle({
         apiBaseUrl: settings.apiBaseUrl,
         importToken: settings.importToken,
-        bundle
+        bundle: deliveryBundle
       });
       setUploadResult(result);
       setStep('upload');
       setNotice(null);
+      if (result.ok) {
+        deepLinkSettingsRef.current = deepLinkSettingsRef.current ? { ...deepLinkSettingsRef.current, importToken: '', importSessionId: undefined } : null;
+        setSettings((current) => ({ ...current, importToken: '', importSessionId: undefined }));
+      } else if (result.code === 'expired' || result.code === 'unauthorized') {
+        deepLinkSettingsRef.current = deepLinkSettingsRef.current ? { ...deepLinkSettingsRef.current, importToken: '', importSessionId: undefined } : null;
+        setSettings((current) => ({ ...current, importToken: '', importSessionId: undefined }));
+      }
     } catch (error) {
       showError(error);
     } finally {
       setBusyAction(null);
     }
+  }
+
+  async function cancelBusyAction() {
+    if (busyAction === 'importing') await window.leagueLore.cancelEspnImport();
+    if (busyAction === 'uploading') await window.leagueLore.cancelUpload();
+  }
+
+  async function continueInLeagueLore() {
+    if (uploadResult?.continuationUrl) await window.leagueLore.openLeagueLoreUrl(uploadResult.continuationUrl);
+  }
+
+  async function handleUpdateAction() {
+    if (updateInfo?.status === 'available' && updateInfo.releaseUrl) {
+      await window.leagueLore.openUpdateUrl(updateInfo.releaseUrl);
+      return;
+    }
+    const next = await window.leagueLore.checkForUpdates();
+    setUpdateInfo(next);
+    setNotice(next.status === 'available'
+      ? { tone: 'info', title: `Version ${next.latestVersion} is available`, message: 'Choose “Update available” in the header to open the signed release.' }
+      : next.status === 'current'
+        ? { tone: 'success', title: 'Helper is up to date', message: `Version ${next.currentVersion} is the latest available release.` }
+        : { tone: 'info', title: 'Update check unavailable', message: 'The helper could not reach the release service. Try again later.' });
+  }
+
+  async function saveDiagnostics() {
+    const result = await window.leagueLore.saveDiagnostics();
+    if (!result.canceled) setNotice({ tone: 'success', title: 'Diagnostics saved', message: 'The privacy-safe support log contains event names and counts, never cookies, tokens, headers, or raw payloads.' });
   }
 
   async function clearSession() {
@@ -250,7 +315,10 @@ export default function App() {
             <h1>ESPN Import Helper</h1>
           </div>
         </div>
-        <div className="secure-badge"><Icon name="shield" /> Secure local helper {version ? `· v${version}` : ''}</div>
+        <div className="header-tools">
+          <button className="header-action" onClick={saveDiagnostics}>Save diagnostics</button>
+          <button className={`secure-badge ${updateInfo?.status === 'available' ? 'update' : ''}`} onClick={handleUpdateAction}><Icon name="shield" /> {updateInfo?.status === 'available' ? `Update ${updateInfo.latestVersion} available` : `Secure local helper ${version ? `· v${version}` : ''}`}</button>
+        </div>
       </header>
 
       <section className="intro">
@@ -290,6 +358,7 @@ export default function App() {
               setSettings={setSettings}
               busyAction={busyAction}
               canContinue={canImport}
+              leagueIdIsValid={leagueIdIsValid}
               seasonIsValid={seasonIsValid}
               hasImportSession={canUpload}
               mockImportsEnabled={runtimeConfig.mockImportsEnabled}
@@ -307,14 +376,19 @@ export default function App() {
               onRefresh={checkSession}
               onClear={clearSession}
               onImport={importEspn}
+              onCancel={cancelBusyAction}
               onMock={importMock}
               mockImportsEnabled={runtimeConfig.mockImportsEnabled}
             />
           )}
-          {step === 'preview' && <PreviewStep bundle={bundle} busyAction={busyAction} canUpload={canUpload} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} />}
-          {step === 'upload' && <UploadStep bundle={bundle} result={uploadResult} busyAction={busyAction} canUpload={canUpload} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} />}
+          {step === 'preview' && <PreviewStep sourceBundle={bundle} bundle={deliveryBundle} includedCategories={includedCategories} setIncludedCategories={setIncludedCategories} busyAction={busyAction} canUpload={canUpload} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} onCancel={cancelBusyAction} />}
+          {step === 'upload' && <UploadStep bundle={deliveryBundle} result={uploadResult} busyAction={busyAction} canUpload={canUpload} mockImportsEnabled={runtimeConfig.mockImportsEnabled} onSave={saveBundle} onUpload={upload} onCancel={cancelBusyAction} onContinue={continueInLeagueLore} />}
         </div>
       </section>
+      <footer className="app-footer">
+        <span>Open source · ESPN credentials stay in the helper session</span>
+        <div><button onClick={() => window.leagueLore.openProjectUrl('https://github.com/dcuellar322/leaguelore-import-helper/blob/master/docs/PRIVACY.md')}>Privacy</button><button onClick={() => window.leagueLore.openProjectUrl('https://github.com/dcuellar322/leaguelore-import-helper/blob/master/docs/SECURITY.md')}>Security</button></div>
+      </footer>
     </main>
   );
 }
@@ -340,11 +414,12 @@ function StepButton({ state, number, title, body, onClick }: { state: 'active' |
   );
 }
 
-function SetupStep({ settings, setSettings, busyAction, canContinue, seasonIsValid, hasImportSession, mockImportsEnabled, onContinue, onMock }: {
+function SetupStep({ settings, setSettings, busyAction, canContinue, leagueIdIsValid, seasonIsValid, hasImportSession, mockImportsEnabled, onContinue, onMock }: {
   settings: HelperSettings;
   setSettings: (settings: HelperSettings) => void;
   busyAction: BusyAction | null;
   canContinue: boolean;
+  leagueIdIsValid: boolean;
   seasonIsValid: boolean;
   hasImportSession: boolean;
   mockImportsEnabled: boolean;
@@ -353,6 +428,14 @@ function SetupStep({ settings, setSettings, busyAction, canContinue, seasonIsVal
 }) {
   function updateSeason(value: string) {
     setSettings({ ...settings, season: value.trim() ? Number(value) : undefined });
+  }
+
+  function pasteLeagueUrl(event: ClipboardEvent<HTMLInputElement>) {
+    const pasted = event.clipboardData.getData('text');
+    const parsed = parseEspnLeagueInput(pasted);
+    if (!parsed) return;
+    event.preventDefault();
+    setSettings({ ...settings, leagueId: parsed.leagueId, season: parsed.season ?? settings.season });
   }
 
   return (
@@ -366,8 +449,8 @@ function SetupStep({ settings, setSettings, busyAction, canContinue, seasonIsVal
         </div>
       </div>
       <div className="form-grid">
-        <Field label="ESPN League ID" hint="Find this number in your ESPN league URL.">
-          <input value={settings.leagueId} onChange={(event) => setSettings({ ...settings, leagueId: event.target.value.trim() })} placeholder="e.g. 123456" autoComplete="off" />
+        <Field label="ESPN League ID" hint="Enter the number or paste the complete ESPN league URL." error={settings.leagueId && !leagueIdIsValid ? 'Enter a numeric ESPN league ID with up to 12 digits.' : undefined}>
+          <input value={settings.leagueId} onPaste={pasteLeagueUrl} onChange={(event) => setSettings({ ...settings, leagueId: event.target.value.trim() })} placeholder="e.g. 123456" autoComplete="off" inputMode="numeric" aria-invalid={Boolean(settings.leagueId && !leagueIdIsValid)} />
         </Field>
         <Field label="ESPN season" hint="Confirm the year you want to import." error={!seasonIsValid ? 'Enter a year from 2000 to 2100.' : undefined}>
           <input type="number" inputMode="numeric" min="2000" max="2100" value={settings.season ?? ''} onChange={(event) => updateSeason(event.target.value)} aria-invalid={!seasonIsValid} />
@@ -381,7 +464,7 @@ function SetupStep({ settings, setSettings, busyAction, canContinue, seasonIsVal
   );
 }
 
-function SignInStep({ settings, status, busyAction, canImport, onOpenEspn, onRefresh, onClear, onImport, onMock, mockImportsEnabled }: {
+function SignInStep({ settings, status, busyAction, canImport, onOpenEspn, onRefresh, onClear, onImport, onCancel, onMock, mockImportsEnabled }: {
   settings: HelperSettings;
   status: SessionStatus;
   busyAction: BusyAction | null;
@@ -390,6 +473,7 @@ function SignInStep({ settings, status, busyAction, canImport, onOpenEspn, onRef
   onRefresh: () => void;
   onClear: () => void;
   onImport: () => void;
+  onCancel: () => void;
   onMock: () => void;
   mockImportsEnabled: boolean;
 }) {
@@ -424,7 +508,10 @@ function SignInStep({ settings, status, busyAction, canImport, onOpenEspn, onRef
             <button disabled={busy} onClick={onRefresh}>{busyAction === 'checking-session' ? 'Checking…' : 'Check sign-in status'} <Icon name="refresh" /></button>
           </>
         ) : (
-          <button className="primary" disabled={busy || !canImport} onClick={onImport}>{busyAction === 'importing' ? 'Importing and validating…' : 'Import this ESPN season'} <Icon name="arrow" /></button>
+          <>
+            <button className="primary" disabled={busy || !canImport} onClick={onImport}>{busyAction === 'importing' ? 'Importing and validating…' : 'Import this ESPN season'} <Icon name="arrow" /></button>
+            {busyAction === 'importing' && <button onClick={onCancel}>Cancel import</button>}
+          </>
         )}
         <button className="text-button danger" disabled={busy} onClick={onClear}>{busyAction === 'clearing-session' ? 'Clearing…' : 'Clear local ESPN session'}</button>
       </div>
@@ -433,17 +520,31 @@ function SignInStep({ settings, status, busyAction, canImport, onOpenEspn, onRef
   );
 }
 
-function PreviewStep({ bundle, busyAction, canUpload, mockImportsEnabled, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; busyAction: BusyAction | null; canUpload: boolean; mockImportsEnabled: boolean; onSave: () => void; onUpload: () => void }) {
-  if (!bundle) return <EmptyState title="Nothing to review yet" body={mockImportsEnabled ? 'Connect to ESPN or use development data to create an import.' : 'Connect to ESPN to create an import first.'} />;
+function PreviewStep({ sourceBundle, bundle, includedCategories, setIncludedCategories, busyAction, canUpload, mockImportsEnabled, onSave, onUpload, onCancel }: {
+  sourceBundle: LeagueLoreImportBundle | null;
+  bundle: LeagueLoreImportBundle | null;
+  includedCategories: IncludedCategories;
+  setIncludedCategories: (value: IncludedCategories) => void;
+  busyAction: BusyAction | null;
+  canUpload: boolean;
+  mockImportsEnabled: boolean;
+  onSave: () => void;
+  onUpload: () => void;
+  onCancel: () => void;
+}) {
+  if (!bundle || !sourceBundle) return <EmptyState title="Nothing to review yet" body={mockImportsEnabled ? 'Connect to ESPN or use development data to create an import.' : 'Connect to ESPN to create an import first.'} />;
   const busy = Boolean(busyAction);
   return (
     <section className="step-content">
       <StepHeader kicker="Step 3" title="Review your import" body="This is the complete, validated data bundle. ESPN passwords and raw session cookies are never included." />
       <BundleHero bundle={bundle} />
       <BundleSummary bundle={bundle} />
+      <ReviewCategories sourceBundle={sourceBundle} included={includedCategories} onChange={setIncludedCategories} />
+      <HumanReadablePreview bundle={bundle} />
       <div className="actions step-actions">
         <button disabled={busy} onClick={onSave}>{busyAction === 'saving' ? 'Saving…' : 'Save JSON locally'} <Icon name="download" /></button>
         <button className="primary" disabled={busy || !canUpload} onClick={onUpload}>{busyAction === 'uploading' ? 'Sending securely…' : 'Send to LeagueLore'} <Icon name="upload" /></button>
+        {busyAction === 'uploading' && <button onClick={onCancel}>Cancel upload</button>}
       </div>
       {!canUpload && <p className="action-note"><Icon name="lock" /> Sending is available when this helper is opened from LeagueLore. Local export is always available.</p>}
       <details className="json-preview">
@@ -454,7 +555,7 @@ function PreviewStep({ bundle, busyAction, canUpload, mockImportsEnabled, onSave
   );
 }
 
-function UploadStep({ bundle, result, busyAction, canUpload, mockImportsEnabled, onSave, onUpload }: { bundle: LeagueLoreImportBundle | null; result: UploadResult | null; busyAction: BusyAction | null; canUpload: boolean; mockImportsEnabled: boolean; onSave: () => void; onUpload: () => void }) {
+function UploadStep({ bundle, result, busyAction, canUpload, mockImportsEnabled, onSave, onUpload, onCancel, onContinue }: { bundle: LeagueLoreImportBundle | null; result: UploadResult | null; busyAction: BusyAction | null; canUpload: boolean; mockImportsEnabled: boolean; onSave: () => void; onUpload: () => void; onCancel: () => void; onContinue: () => void }) {
   if (!bundle) return <EmptyState title="No import to finish" body={mockImportsEnabled ? 'Connect to ESPN or use development data first.' : 'Connect to ESPN and review an import first.'} />;
   const busy = Boolean(busyAction);
   return (
@@ -468,10 +569,63 @@ function UploadStep({ bundle, result, busyAction, canUpload, mockImportsEnabled,
       ) : <BundleHero bundle={bundle} compact />}
       <div className="actions step-actions">
         <button disabled={busy} onClick={onSave}>{busyAction === 'saving' ? 'Saving…' : 'Save JSON locally'} <Icon name="download" /></button>
-        <button className="primary" disabled={busy || !canUpload} onClick={onUpload}>{busyAction === 'uploading' ? 'Sending securely…' : result?.ok ? 'Send again' : 'Send to LeagueLore'} <Icon name="upload" /></button>
+        {result?.ok && result.continuationUrl
+          ? <button className="primary" disabled={busy} onClick={onContinue}>Continue in LeagueLore <Icon name="external" /></button>
+          : !result?.ok && <button className="primary" disabled={busy || !canUpload} onClick={onUpload}>{busyAction === 'uploading' ? 'Sending securely…' : result?.retryable ? 'Retry upload' : 'Send to LeagueLore'} <Icon name="upload" /></button>}
+        {busyAction === 'uploading' && <button onClick={onCancel}>Cancel upload</button>}
       </div>
-      {!canUpload && <p className="action-note"><Icon name="lock" /> Open this helper from LeagueLore to enable secure sending.</p>}
+      {result?.ok && !result.continuationUrl && <p className="action-note"><Icon name="check" /> Return to the LeagueLore browser tab to continue the preview.</p>}
+      {!result?.ok && !canUpload && <p className="action-note"><Icon name="lock" /> Open this helper from LeagueLore to enable secure sending.</p>}
       {result?.response ? <details className="json-preview"><summary><Icon name="file" /> View LeagueLore response <Icon name="chevron" /></summary><pre>{JSON.stringify(result.response, null, 2)}</pre></details> : null}
+    </section>
+  );
+}
+
+function ReviewCategories({ sourceBundle, included, onChange }: { sourceBundle: LeagueLoreImportBundle; included: IncludedCategories; onChange: (value: IncludedCategories) => void }) {
+  const categories: Array<{ key: OptionalImportCategory; label: string; count: number; description: string }> = [
+    { key: 'rosterEntries', label: 'Rosters', count: sourceBundle.rosterEntries.length, description: 'Players and lineup slots' },
+    { key: 'matchups', label: 'Matchups', count: sourceBundle.matchups.length, description: 'Scores, opponents, and winners' },
+    { key: 'draftPicks', label: 'Draft', count: sourceBundle.draftPicks.length, description: 'Picks, keepers, and auction prices' },
+    { key: 'transactions', label: 'Transactions', count: sourceBundle.transactions.length, description: 'Adds, drops, waivers, and trades' }
+  ];
+  return (
+    <section className="review-options" aria-labelledby="review-options-title">
+      <div className="section-heading"><div><p className="eyebrow">Choose what leaves this computer</p><h3 id="review-options-title">Import categories</h3></div><span>League and teams are required</span></div>
+      <div className="review-option-grid">
+        {categories.map((category) => (
+          <label className={`review-option ${included[category.key] ? 'selected' : ''}`} key={category.key}>
+            <input type="checkbox" checked={included[category.key]} onChange={() => onChange({ ...included, [category.key]: !included[category.key] })} />
+            <span><strong>{category.label}</strong><small>{category.count} records · {category.description}</small></span>
+          </label>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HumanReadablePreview({ bundle }: { bundle: LeagueLoreImportBundle }) {
+  const teamNames = new Map(bundle.teams.map((team) => [team.externalRef.externalId, team.displayName]));
+  return (
+    <section className="readable-preview" aria-labelledby="readable-preview-title">
+      <div className="section-heading"><div><p className="eyebrow">Human-readable review</p><h3 id="readable-preview-title">What will be sent</h3></div></div>
+      <div className="preview-sections">
+        <details open>
+          <summary>Teams and owners <span>{bundle.teams.length}</span></summary>
+          <ul>{bundle.teams.map((team) => <li key={team.externalRef.externalId}><strong>{team.displayName}</strong><small>{team.ownerDisplayNames.length ? team.ownerDisplayNames.join(', ') : 'No owner name returned by ESPN'}</small></li>)}</ul>
+        </details>
+        {bundle.rosterEntries.length > 0 && <details>
+          <summary>Roster entries <span>{bundle.rosterEntries.length}</span></summary>
+          <ul>{bundle.rosterEntries.slice(0, 20).map((entry, index) => <li key={`${entry.teamExternalId}-${entry.player.externalRef.externalId}-${index}`}><strong>{entry.player.fullName}</strong><small>{teamNames.get(entry.teamExternalId) ?? entry.teamExternalId}{entry.lineupSlot ? ` · ${entry.lineupSlot}` : ''}</small></li>)}</ul>
+          {bundle.rosterEntries.length > 20 && <p>Plus {bundle.rosterEntries.length - 20} more roster entries in the complete JSON.</p>}
+        </details>}
+        {bundle.matchups.length > 0 && <details>
+          <summary>Matchups <span>{bundle.matchups.length}</span></summary>
+          <ul>{bundle.matchups.slice(0, 12).map((matchup) => <li key={matchup.externalRef.externalId}><strong>Week {matchup.scoringPeriodId}</strong><small>{matchup.home ? teamNames.get(matchup.home.teamExternalId) ?? matchup.home.teamExternalId : 'Bye'} vs {matchup.away ? teamNames.get(matchup.away.teamExternalId) ?? matchup.away.teamExternalId : 'Bye'}</small></li>)}</ul>
+          {bundle.matchups.length > 12 && <p>Plus {bundle.matchups.length - 12} more matchups in the complete JSON.</p>}
+        </details>}
+        {bundle.draftPicks.length > 0 && <details><summary>Draft picks <span>{bundle.draftPicks.length}</span></summary><p>Player, team, round, keeper, and auction details returned by ESPN.</p></details>}
+        {bundle.transactions.length > 0 && <details><summary>Transactions <span>{bundle.transactions.length}</span></summary><p>Add, drop, waiver, free-agent, draft, and trade activity returned by ESPN.</p></details>}
+      </div>
     </section>
   );
 }
@@ -539,5 +693,9 @@ function Icon({ name }: { name: IconName }) {
 }
 
 function formatError(error: unknown): string {
-  return error instanceof Error ? error.message : 'Something went wrong.';
+  if (!(error instanceof Error)) return 'Something went wrong.';
+  return error.message
+    .replace(/^Error invoking remote method '[^']+':\s*/i, '')
+    .replace(/^Error:\s*/i, '')
+    .slice(0, 500);
 }

@@ -8,6 +8,8 @@ import {
   findDeepLinkArg,
   isAllowedLocalRendererUrl,
   normalizeApiBaseUrl,
+  normalizeLeagueLoreNavigationUrl,
+  parseEspnLeagueInput,
   parseDeepLinkSettings
 } from './validation.js';
 
@@ -25,16 +27,25 @@ describe('URL and deep-link validation', () => {
 
   it('parses LeagueLore import deep links into helper settings', () => {
     const settings = parseDeepLinkSettings(
-      'leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=session-token&leagueId=123456&season=2026',
+      'leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=session-token&importSessionId=import-1&leagueId=123456&season=2026',
       { allowLocalhost: false }
     );
 
     expect(settings).toEqual({
       apiBaseUrl: 'https://www.leagueloreapp.com',
       importToken: 'session-token',
+      importSessionId: 'import-1',
       leagueId: '123456',
       season: 2026
     });
+  });
+
+  it('parses ESPN league URLs and restricts LeagueLore continuation URLs', () => {
+    expect(parseEspnLeagueInput('https://fantasy.espn.com/football/league?leagueId=123&seasonId=2025')).toEqual({ leagueId: '123', season: 2025 });
+    expect(parseEspnLeagueInput('123')).toEqual({ leagueId: '123' });
+    expect(() => parseEspnLeagueInput('https://example.com/?leagueId=123')).toThrow();
+    expect(normalizeLeagueLoreNavigationUrl('https://www.leagueloreapp.com/imports/preview?id=1', { allowLocalhost: false })).toBe('https://www.leagueloreapp.com/imports/preview?id=1');
+    expect(() => normalizeLeagueLoreNavigationUrl('https://evil.example/imports/preview', { allowLocalhost: false })).toThrow();
   });
 
   it('ignores invalid or unrelated deep links', () => {

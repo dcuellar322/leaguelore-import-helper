@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import { getEspnSession } from './cookies.js';
 import { hardenWindow, isAllowedEspnAuthUrl } from '../security.js';
 import { currentSeasonYear } from '../../shared/environment.js';
@@ -12,6 +12,7 @@ let loginWindow: BrowserWindow | null = null;
 
 export async function openEspnLoginWindow(params: OpenEspnLoginParams): Promise<void> {
   if (loginWindow && !loginWindow.isDestroyed()) {
+    await loginWindow.loadURL(buildFantasyUrl(params));
     loginWindow.focus();
     return;
   }
@@ -36,7 +37,7 @@ export async function openEspnLoginWindow(params: OpenEspnLoginParams): Promise<
       sandbox: true,
       webSecurity: true,
       allowRunningInsecureContent: false,
-      devTools: !appIsPackaged()
+      devTools: !app.isPackaged
     }
   });
 
@@ -57,15 +58,15 @@ export async function openEspnLoginWindow(params: OpenEspnLoginParams): Promise<
   await loginWindow.loadURL(target);
 }
 
+export function closeEspnLoginWindow(): void {
+  if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close();
+  loginWindow = null;
+}
+
 function buildFantasyUrl(params: OpenEspnLoginParams): string {
   const season = params.season ?? currentSeasonYear();
   if (params.leagueId) {
     return `https://fantasy.espn.com/football/league?leagueId=${encodeURIComponent(params.leagueId)}&seasonId=${season}`;
   }
   return `https://fantasy.espn.com/football/`;
-}
-
-function appIsPackaged(): boolean {
-  // This helper avoids importing app in tests and keeps this module focused.
-  return process.defaultApp !== true && process.env.NODE_ENV !== 'development';
 }

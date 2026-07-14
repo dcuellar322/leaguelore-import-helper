@@ -6,5 +6,9 @@ export function defaultLeagueLoreApiBaseUrl(isPackaged: boolean): string {
 }
 
 export function currentSeasonYear(): number {
-  return new Date().getFullYear();
+  return currentEspnSeasonYear();
+}
+
+export function currentEspnSeasonYear(now = new Date()): number {
+  return now.getMonth() >= 5 ? now.getFullYear() : now.getFullYear() - 1;
 }

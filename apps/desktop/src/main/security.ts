@@ -67,3 +67,27 @@ function openTrustedExternal(url: string): void {
     // ignore malformed URLs
   }
 }
+
+export function openTrustedLeagueLoreUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || !TRUSTED_EXTERNAL_HOSTS.has(parsed.hostname) || parsed.hostname === 'github.com') {
+    throw new Error('Rejected untrusted LeagueLore URL.');
+  }
+  void shell.openExternal(parsed.toString());
+}
+
+export function openTrustedUpdateUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/releases/')) {
+    throw new Error('Rejected untrusted update URL.');
+  }
+  void shell.openExternal(parsed.toString());
+}
+
+export function openTrustedProjectUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/')) {
+    throw new Error('Rejected untrusted project URL.');
+  }
+  void shell.openExternal(parsed.toString());
+}

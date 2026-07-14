@@ -35,6 +35,8 @@ The app follows the main Electron security recommendations:
 - restrictive Content Security Policy for the renderer
 - Electron fuses configured for packaged builds
 
+Packaged builds disable `RunAsNode`, `NODE_OPTIONS`, CLI inspector arguments, browser-specific V8 snapshots, and extra `file://` privileges. They enable cookie encryption, embedded ASAR integrity validation, and loading application code only from the signed ASAR. The renderer is served through the app's restricted `app://bundle` protocol.
+
 ## Logging policy
 
 Do not log:
@@ -43,6 +45,8 @@ Do not log:
 - LeagueLore import tokens
 - full request headers
 - raw ESPN response payloads unless behind an explicit developer-only flag
+
+The optional diagnostics export contains timestamps, event names, result codes, and aggregate record counts. Its writer rejects fields whose names indicate tokens, cookies, secrets, passwords, headers, payloads, or responses and rotates the local log at 1 MB.
 
 ## Data uploaded to LeagueLore
 
@@ -53,7 +57,12 @@ The app uploads a `LeagueLoreImportBundle` JSON document. It includes league, te
 Before sending to non-technical beta users, treat these items as release blockers:
 
 1. Publish the helper source publicly.
-2. Sign and notarize macOS builds.
+2. Sign and notarize macOS x64 and arm64 builds.
 3. Sign Windows builds.
 4. Publish SHA-256 checksums with each GitHub release.
-5. Keep an easy-to-read privacy page linked from LeagueLore's import screen.
+5. Run the installed deep-link and production-preview smoke test.
+6. Keep an easy-to-read privacy page linked from both the helper and LeagueLore's import screen.
+
+## Reporting a vulnerability
+
+Do not include credentials, tokens, cookies, or raw ESPN payloads in a report. Submit a private report through [GitHub's private security advisory form](https://github.com/dcuellar322/leaguelore-import-helper/security/advisories/new). If that form is unavailable, contact the repository owner privately through the GitHub profile rather than opening a public issue.

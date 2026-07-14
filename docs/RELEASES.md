@@ -4,6 +4,7 @@
 
 ```bash
 npm install
+npm run test:coverage
 npm run typecheck
 npm run make
 ```
@@ -17,28 +18,28 @@ distribution.
 
 ## macOS signing and notarization
 
-Set these secrets in GitHub Actions or your local environment:
+Set these GitHub Actions secrets:
 
 ```bash
-APPLE_ID=
-APPLE_ID_PASSWORD=
-APPLE_TEAM_ID=
-CSC_LINK=
-CSC_KEY_PASSWORD=
+MACOS_CSC_LINK=
+MACOS_CSC_KEY_PASSWORD=
+APPLE_API_KEY_BASE64=
+APPLE_API_KEY_ID=
+APPLE_API_ISSUER=
 ```
 
-`CSC_LINK` should point to a base64-encoded certificate or secure file URL supported by your release tooling.
+`MACOS_CSC_LINK` should contain a base64-encoded Developer ID Application certificate or secure file URL supported by Electron Builder. The release job maps it to `CSC_LINK`. `APPLE_API_KEY_BASE64` is the base64-encoded contents of the App Store Connect `.p8` private key; the workflow materializes it as a permission-restricted temporary file for notarization.
 
 ## Windows signing
 
 Set these secrets:
 
 ```bash
-WINDOWS_CERTIFICATE_FILE=
-WINDOWS_CERTIFICATE_PASSWORD=
+WINDOWS_CSC_LINK=
+WINDOWS_CSC_KEY_PASSWORD=
 ```
 
-Unsigned builds are acceptable for local development, but public releases should be signed because Windows SmartScreen and macOS Gatekeeper warnings can appear.
+Unsigned builds are acceptable for local development. The tag release workflow deliberately fails if signing or notarization secrets are absent.
 
 ## Checksums
 
@@ -48,7 +49,7 @@ After building:
 find apps/desktop/dist -maxdepth 5 -type f -print0 | xargs -0 shasum -a 256 > SHA256SUMS.txt
 ```
 
-Attach `SHA256SUMS.txt` to every GitHub Release alongside the platform artifacts.
+The release workflow combines all native artifacts, generates `SHA256SUMS.txt`, and creates the GitHub Release. It also checks that the tag, root package, desktop package, contract package, and source contract versions match.
 
 ## Suggested release naming
 
@@ -59,6 +60,18 @@ Assets:
 - LeagueLoreImportHelper-darwin-arm64.dmg
 - LeagueLoreImportHelper-darwin-x64.dmg
 - LeagueLoreImportHelper-win32-x64.exe
-- LeagueLoreImportHelper-linux-x64.AppImage or .deb
+- LeagueLoreImportHelper-linux-x64.AppImage, .deb, or .zip
 - SHA256SUMS.txt
 ```
+
+## Release verification
+
+Before announcing a release:
+
+1. Install each native artifact on a clean supported OS.
+2. Launch with a `leaguelore-import://session` link and confirm league, season, session ID, and token handoff.
+3. Complete a sanitized end-to-end preview against the production API.
+4. Verify macOS notarization with `xcrun stapler validate` and Windows signatures with `Get-AuthenticodeSignature`.
+5. Confirm the packaged fuse report disables Node injection/inspection and enforces encrypted cookies and ASAR integrity.
+
+The manually dispatched **Production upload smoke test** workflow requires approval through the `production-smoke` GitHub environment plus a newly issued one-time `LEAGUELORE_SMOKE_TOKEN` and `LEAGUELORE_SMOKE_SESSION_ID`. It uploads a sanitized minimal ESPN-shaped bundle, prints only the HTTP status, and rejects continuation URLs outside LeagueLore. Run it before promoting a public release; the preview it creates can then be deleted through the normal LeagueLore flow.

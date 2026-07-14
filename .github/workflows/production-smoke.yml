@@ -1,0 +1,26 @@
+name: Production upload smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    environment: production-smoke
+    env:
+      LEAGUELORE_SMOKE_TOKEN: ${{ secrets.LEAGUELORE_SMOKE_TOKEN }}
+      LEAGUELORE_SMOKE_SESSION_ID: ${{ secrets.LEAGUELORE_SMOKE_SESSION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:contract
+      - name: Require an approved one-time smoke session
+        run: test -n "$LEAGUELORE_SMOKE_TOKEN" && test -n "$LEAGUELORE_SMOKE_SESSION_ID"
+      - run: npm run smoke:production-upload

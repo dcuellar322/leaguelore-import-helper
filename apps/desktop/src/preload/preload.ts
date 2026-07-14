@@ -12,9 +12,16 @@ const bridge: LeagueLoreBridge = {
   getEspnSessionStatus: () => ipcRenderer.invoke('espn:session-status'),
   clearEspnSession: () => ipcRenderer.invoke('espn:clear-session'),
   importFromEspn: (params: ImportParams) => ipcRenderer.invoke('espn:import', params),
+  cancelEspnImport: () => ipcRenderer.invoke('espn:cancel-import'),
   createMockImport: (params: ImportParams) => ipcRenderer.invoke('mock:import', params),
   saveBundleToDisk: (bundle: LeagueLoreImportBundle) => ipcRenderer.invoke('bundle:save-to-disk', bundle),
   uploadBundle: (params: UploadParams) => ipcRenderer.invoke('bundle:upload', params),
+  cancelUpload: () => ipcRenderer.invoke('bundle:cancel-upload'),
+  openLeagueLoreUrl: (url: string) => ipcRenderer.invoke('app:open-leaguelore-url', url),
+  openUpdateUrl: (url: string) => ipcRenderer.invoke('app:open-update-url', url),
+  openProjectUrl: (url: string) => ipcRenderer.invoke('app:open-project-url', url),
+  checkForUpdates: () => ipcRenderer.invoke('app:check-for-updates'),
+  saveDiagnostics: () => ipcRenderer.invoke('diagnostics:save'),
   onDeepLink: (callback: (settings: DeepLinkSettings) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, settings: DeepLinkSettings) => callback(settings);
     ipcRenderer.on('app:deep-link', listener);

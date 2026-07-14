@@ -19,6 +19,8 @@
     "package": "npm run build:contract && npm -w apps/desktop run package",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "release:check-version": "node scripts/check-release-version.mjs",
+    "smoke:production-upload": "node scripts/smoke-production-upload.mjs",
     "typecheck": "npm run build:contract && npm --workspaces run typecheck",
     "build:contract": "npm -w packages/import-contract run build && npm -w packages/import-contract run schema",
     "clean": "node scripts/clean.mjs"
