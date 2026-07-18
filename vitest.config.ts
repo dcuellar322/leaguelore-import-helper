@@ -1,6 +1,12 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@leaguelore/import-contract': fileURLToPath(new URL('./packages/import-contract/src/index.ts', import.meta.url))
+    }
+  },
   test: {
     environment: 'node',
     include: ['apps/desktop/src/**/*.test.ts', 'packages/import-contract/src/**/*.test.ts'],

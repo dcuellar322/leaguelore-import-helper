@@ -31,7 +31,7 @@ export const LeagueSchema = z.object({
   size: z.number().int().positive().optional(),
   scoringType: z.string().optional(),
   visibility: z.enum(['public', 'private', 'unknown']).default('unknown'),
-  settings: z.record(z.unknown()).default({})
+  settings: z.record(z.string(), z.unknown()).default({})
 });
 
 export const TeamSchema = z.object({
