@@ -57,10 +57,10 @@ The release workflow combines all native artifacts, generates `SHA256SUMS.txt`, 
 LeagueLore Import Helper v0.1.0
 
 Assets:
-- LeagueLoreImportHelper-darwin-arm64.dmg
-- LeagueLoreImportHelper-darwin-x64.dmg
-- LeagueLoreImportHelper-win32-x64.exe
-- LeagueLoreImportHelper-linux-x64.AppImage, .deb, or .zip
+- LeagueLoreImportHelper-0.1.0-mac-arm64.dmg
+- LeagueLoreImportHelper-0.1.0-mac-x64.dmg
+- LeagueLoreImportHelper-0.1.0-win-x64.exe
+- LeagueLoreImportHelper-0.1.0-linux-x64.AppImage, .deb, or .zip
 - SHA256SUMS.txt
 ```
 

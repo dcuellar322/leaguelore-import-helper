@@ -11,9 +11,13 @@ export async function checkForUpdates(): Promise<UpdateInfo> {
       signal: AbortSignal.timeout(10_000)
     });
     if (!response.ok) return { status: 'unavailable', currentVersion: app.getVersion() };
-    const body = await response.json() as { tag_name?: unknown; html_url?: unknown };
+    const body = (await response.json()) as { tag_name?: unknown; html_url?: unknown };
     const latestVersion = typeof body.tag_name === 'string' ? body.tag_name.replace(/^v/, '') : undefined;
-    const releaseUrl = typeof body.html_url === 'string' && body.html_url.startsWith('https://github.com/dcuellar322/leaguelore-import-helper/releases/') ? body.html_url : undefined;
+    const releaseUrl =
+      typeof body.html_url === 'string' &&
+      body.html_url.startsWith('https://github.com/dcuellar322/leaguelore-import-helper/releases/')
+        ? body.html_url
+        : undefined;
     if (!latestVersion || !releaseUrl) return { status: 'unavailable', currentVersion: app.getVersion() };
     return {
       status: compareVersions(latestVersion, app.getVersion()) > 0 ? 'available' : 'current',

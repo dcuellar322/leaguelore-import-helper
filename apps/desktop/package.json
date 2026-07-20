@@ -18,7 +18,7 @@
     "appId": "app.leaguelore.import-helper",
     "productName": "LeagueLore Import Helper",
     "icon": "assets/league-lore-mark.png",
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "LeagueLoreImportHelper-${version}-${os}-${arch}.${ext}",
     "asar": true,
     "afterPack": "scripts/after-pack.cjs",
     "electronFuses": {

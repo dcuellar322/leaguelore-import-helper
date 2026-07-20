@@ -8,19 +8,29 @@ function diagnosticsPath(): string {
   return join(app.getPath('userData'), 'diagnostics.jsonl');
 }
 
-export async function recordDiagnostic(event: string, details: Record<string, string | number | boolean | undefined> = {}): Promise<void> {
+export async function recordDiagnostic(
+  event: string,
+  details: Record<string, string | number | boolean | undefined> = {}
+): Promise<void> {
   try {
     const path = diagnosticsPath();
     await mkdir(dirname(path), { recursive: true });
-    const size = await stat(path).then((value) => value.size).catch(() => 0);
+    const size = await stat(path)
+      .then((value) => value.size)
+      .catch(() => 0);
     if (size > MAX_LOG_BYTES) {
       await unlink(`${path}.previous`).catch(() => undefined);
       await rename(path, `${path}.previous`).catch(() => undefined);
     }
-    const safeDetails = Object.fromEntries(Object.entries(details).filter(([key, value]) =>
-      value !== undefined && !/(token|cookie|secret|password|header|payload|response)/i.test(key)
-    ));
-    await appendFile(path, `${JSON.stringify({ timestamp: new Date().toISOString(), event, ...safeDetails })}\n`, { encoding: 'utf-8', mode: 0o600 });
+    const safeDetails = Object.fromEntries(
+      Object.entries(details).filter(
+        ([key, value]) => value !== undefined && !/(token|cookie|secret|password|header|payload|response)/i.test(key)
+      )
+    );
+    await appendFile(path, `${JSON.stringify({ timestamp: new Date().toISOString(), event, ...safeDetails })}\n`, {
+      encoding: 'utf-8',
+      mode: 0o600
+    });
   } catch {
     // Diagnostics must never interrupt the import flow.
   }

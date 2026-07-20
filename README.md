@@ -66,6 +66,23 @@ Run tests with the coverage gate:
 npm run test:coverage
 ```
 
+The unit coverage gate includes the deterministic import, validation, security, settings, cookie-session,
+diagnostics, and renderer-helper modules. Electron lifecycle and React rendering entry points are validated
+through packaged smoke tests rather than counted as unit-covered code.
+
+Run linting and formatting checks:
+
+```bash
+npm run lint
+npm run format:check
+```
+
+Run the complete local quality suite:
+
+```bash
+npm run quality
+```
+
 Build the app:
 
 ```bash

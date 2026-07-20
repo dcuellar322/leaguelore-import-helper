@@ -1,10 +1,6 @@
-import { BrowserWindow, shell, type WebContents } from 'electron';
+import { shell, type BrowserWindow, type WebContents } from 'electron';
 
-const TRUSTED_EXTERNAL_HOSTS = new Set([
-  'www.leagueloreapp.com',
-  'leagueloreapp.com',
-  'github.com'
-]);
+const TRUSTED_EXTERNAL_HOSTS = new Set(['www.leagueloreapp.com', 'leagueloreapp.com', 'github.com']);
 
 const ESPN_AUTH_HOST_SUFFIXES = [
   'espn.com',
@@ -43,7 +39,10 @@ export function hardenWindow(window: BrowserWindow): void {
   });
 }
 
-export function hardenRendererNavigation(webContents: WebContents, isAllowedInternalUrl: (url: string) => boolean): void {
+export function hardenRendererNavigation(
+  webContents: WebContents,
+  isAllowedInternalUrl: (url: string) => boolean
+): void {
   webContents.setWindowOpenHandler(({ url }) => {
     openTrustedExternal(url);
     return { action: 'deny' };
@@ -70,7 +69,11 @@ function openTrustedExternal(url: string): void {
 
 export function openTrustedLeagueLoreUrl(url: string): void {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || !TRUSTED_EXTERNAL_HOSTS.has(parsed.hostname) || parsed.hostname === 'github.com') {
+  if (
+    parsed.protocol !== 'https:' ||
+    !TRUSTED_EXTERNAL_HOSTS.has(parsed.hostname) ||
+    parsed.hostname === 'github.com'
+  ) {
     throw new Error('Rejected untrusted LeagueLore URL.');
   }
   void shell.openExternal(parsed.toString());
@@ -78,7 +81,11 @@ export function openTrustedLeagueLoreUrl(url: string): void {
 
 export function openTrustedUpdateUrl(url: string): void {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/releases/')) {
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.hostname !== 'github.com' ||
+    !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/releases/')
+  ) {
     throw new Error('Rejected untrusted update URL.');
   }
   void shell.openExternal(parsed.toString());
@@ -86,7 +93,11 @@ export function openTrustedUpdateUrl(url: string): void {
 
 export function openTrustedProjectUrl(url: string): void {
   const parsed = new URL(url);
-  if (parsed.protocol !== 'https:' || parsed.hostname !== 'github.com' || !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/')) {
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.hostname !== 'github.com' ||
+    !parsed.pathname.startsWith('/dcuellar322/leaguelore-import-helper/')
+  ) {
     throw new Error('Rejected untrusted project URL.');
   }
   void shell.openExternal(parsed.toString());
