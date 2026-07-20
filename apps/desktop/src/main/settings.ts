@@ -49,7 +49,12 @@ export async function saveSettings(settings: HelperSettings): Promise<HelperSett
   const parsed = settingsSchema().parse(settings);
   const path = settingsPath();
   await mkdir(dirname(path), { recursive: true });
-  const { apiBaseUrl: _apiBaseUrl, importToken: _importToken, importSessionId: _importSessionId, ...persisted } = parsed;
+  const {
+    apiBaseUrl: _apiBaseUrl,
+    importToken: _importToken,
+    importSessionId: _importSessionId,
+    ...persisted
+  } = parsed;
   await writeFile(path, JSON.stringify(persisted, null, 2), { encoding: 'utf-8', mode: 0o600 });
   return parsed;
 }

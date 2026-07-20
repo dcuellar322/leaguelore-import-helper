@@ -33,7 +33,15 @@ export async function uploadBundle(params: UploadParams, signal?: AbortSignal): 
     return {
       ok: response.ok,
       status: response.status,
-      code: response.ok ? 'ok' : response.status === 401 ? 'unauthorized' : response.status === 403 ? 'expired' : response.status >= 500 ? 'unavailable' : 'rejected',
+      code: response.ok
+        ? 'ok'
+        : response.status === 401
+          ? 'unauthorized'
+          : response.status === 403
+            ? 'expired'
+            : response.status >= 500
+              ? 'unavailable'
+              : 'rejected',
       message: response.ok ? 'Bundle uploaded for LeagueLore preview.' : `LeagueLore returned ${response.status}.`,
       retryable: response.status === 429 || response.status >= 500,
       continuationUrl,
@@ -41,12 +49,17 @@ export async function uploadBundle(params: UploadParams, signal?: AbortSignal): 
     };
   } catch (error) {
     const canceled = signal?.aborted ?? false;
-    const timeout = error instanceof Error && (error.name === 'TimeoutError' || error.message.toLowerCase().includes('timeout'));
+    const timeout =
+      error instanceof Error && (error.name === 'TimeoutError' || error.message.toLowerCase().includes('timeout'));
     return {
       ok: false,
       status: 0,
       code: canceled ? 'canceled' : timeout ? 'timeout' : 'offline',
-      message: canceled ? 'Upload canceled.' : timeout ? 'LeagueLore took too long to respond.' : 'Unable to reach LeagueLore. Check your connection and retry.',
+      message: canceled
+        ? 'Upload canceled.'
+        : timeout
+          ? 'LeagueLore took too long to respond.'
+          : 'Unable to reach LeagueLore. Check your connection and retry.',
       retryable: !canceled
     };
   }

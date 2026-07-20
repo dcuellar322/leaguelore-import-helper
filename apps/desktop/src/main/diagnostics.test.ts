@@ -17,7 +17,11 @@ describe('privacy-safe diagnostics', () => {
   });
 
   it('drops sensitive fields and exports only the local event log', async () => {
-    await recordDiagnostic('import_finished', { teams: 10, importToken: 'never-write-this', cookieHeader: 'never-write-this-either' });
+    await recordDiagnostic('import_finished', {
+      teams: 10,
+      importToken: 'never-write-this',
+      cookieHeader: 'never-write-this-either'
+    });
     const destination = join(userData, 'export.jsonl');
     await exportDiagnostics(destination);
     const contents = await readFile(destination, 'utf-8');

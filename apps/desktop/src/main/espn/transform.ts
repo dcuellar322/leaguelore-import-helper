@@ -29,19 +29,38 @@ export function transformEspnPayload(payload: unknown, context: TransformContext
   const transactionsRaw = asArray(data.transactions);
   const memberNames = buildMemberNameMap(asArray(data.members));
 
-  const teams = teamsRaw.map((team) => mapTeam(team, leagueExternalId, memberNames)).filter(Boolean) as LeagueLoreImportTeam[];
+  const teams = teamsRaw
+    .map((team) => mapTeam(team, leagueExternalId, memberNames))
+    .filter(Boolean) as LeagueLoreImportTeam[];
   const rosterEntries = teamsRaw.flatMap((team) => mapRosterEntries(team));
   const playerLookup = new Map(rosterEntries.map((entry) => [entry.player.externalRef.externalId, entry.player]));
-  const matchups = scheduleRaw.map((matchup) => mapMatchup(matchup, leagueExternalId, context.season)).filter(Boolean) as LeagueLoreMatchup[];
-  const draftPicks = asArray(draftDetail.picks).map((pick) => mapDraftPick(pick, leagueExternalId, context.season, playerLookup)).filter(Boolean) as LeagueLoreDraftPick[];
-  const transactions = transactionsRaw.map((transaction) => mapTransaction(transaction, leagueExternalId, context.season, playerLookup)).filter(Boolean) as LeagueLoreTransaction[];
+  const matchups = scheduleRaw
+    .map((matchup) => mapMatchup(matchup, leagueExternalId, context.season))
+    .filter(Boolean) as LeagueLoreMatchup[];
+  const draftPicks = asArray(draftDetail.picks)
+    .map((pick) => mapDraftPick(pick, leagueExternalId, context.season, playerLookup))
+    .filter(Boolean) as LeagueLoreDraftPick[];
+  const transactions = transactionsRaw
+    .map((transaction) => mapTransaction(transaction, leagueExternalId, context.season, playerLookup))
+    .filter(Boolean) as LeagueLoreTransaction[];
+
+  if (!teams.length) {
+    throw new Error('ESPN returned no teams. Check the league ID, season, and account access, then try again.');
+  }
 
   const warnings: string[] = [];
-  if (!teams.length) warnings.push('No ESPN teams were found in the response. Check league ID, season, and ESPN access.');
-  if (!rosterEntries.length) warnings.push('No roster entries were found. ESPN may have returned limited data or the season may be unavailable.');
-  const unresolvedPlayers = [...draftPicks.flatMap((pick) => pick.player ? [pick.player] : []), ...transactions.flatMap((transaction) => transaction.items.flatMap((item) => item.player ? [item.player] : []))]
-    .filter((player) => player.fullName.startsWith('ESPN Player ')).length;
-  if (unresolvedPlayers) warnings.push(`${unresolvedPlayers} draft or transaction player names were unavailable; ESPN player IDs were preserved for matching.`);
+  if (!rosterEntries.length)
+    warnings.push(
+      'No roster entries were found. ESPN may have returned limited data or the season may be unavailable.'
+    );
+  const unresolvedPlayers = [
+    ...draftPicks.flatMap((pick) => (pick.player ? [pick.player] : [])),
+    ...transactions.flatMap((transaction) => transaction.items.flatMap((item) => (item.player ? [item.player] : [])))
+  ].filter((player) => player.fullName.startsWith('ESPN Player ')).length;
+  if (unresolvedPlayers)
+    warnings.push(
+      `${unresolvedPlayers} draft or transaction player names were unavailable; ESPN player IDs were preserved for matching.`
+    );
 
   const bundle: LeagueLoreImportBundle = {
     metadata: {
@@ -64,10 +83,15 @@ export function transformEspnPayload(payload: unknown, context: TransformContext
       },
       name: leagueName,
       season: context.season,
-      size: teams.length || positiveIntegerOrUndefined(settings.size),
+      size: teams.length,
       scoringPeriodId: numberOrUndefined(data.scoringPeriodId),
       scoringType: asString(settings.scoringSettings && asRecord(settings.scoringSettings).scoringType),
-      visibility: asBoolean(settings.isPublic) === true ? 'public' : asBoolean(settings.isPublic) === false ? 'private' : 'unknown',
+      visibility:
+        asBoolean(settings.isPublic) === true
+          ? 'public'
+          : asBoolean(settings.isPublic) === false
+            ? 'private'
+            : 'unknown',
       settings: scrubUnknown(settings)
     },
     teams,
@@ -80,7 +104,11 @@ export function transformEspnPayload(payload: unknown, context: TransformContext
   return validateImportBundle(bundle);
 }
 
-function mapTeam(input: unknown, leagueExternalId: string, memberNames: Map<string, string>): LeagueLoreImportTeam | null {
+function mapTeam(
+  input: unknown,
+  leagueExternalId: string,
+  memberNames: Map<string, string>
+): LeagueLoreImportTeam | null {
   const team = asRecord(input);
   const id = asString(team.id) ?? asString(team.teamId);
   if (!id) return null;
@@ -114,14 +142,16 @@ function mapRosterEntries(input: unknown): LeagueLoreRosterEntry[] {
     const playerPoolEntry = asRecord(record.playerPoolEntry);
     const player = mapPlayer(playerPoolEntry.player ?? record.player);
     if (!player) return [];
-    return [{
-      teamExternalId: teamId,
-      player,
-      lineupSlot: lineupSlotName(record.lineupSlotId),
-      acquisitionType: asString(record.acquisitionType),
-      acquisitionDate: dateFromMaybeEpoch(record.acquisitionDate),
-      injuryStatus: asString(playerPoolEntry.injuryStatus)
-    }];
+    return [
+      {
+        teamExternalId: teamId,
+        player,
+        lineupSlot: lineupSlotName(record.lineupSlotId),
+        acquisitionType: asString(record.acquisitionType),
+        acquisitionDate: dateFromMaybeEpoch(record.acquisitionDate),
+        injuryStatus: asString(playerPoolEntry.injuryStatus)
+      }
+    ];
   });
 }
 
@@ -147,7 +177,9 @@ function mapPlayer(input: unknown): LeagueLoreImportPlayer | null {
 
 function mapMatchup(input: unknown, leagueExternalId: string, season: number): LeagueLoreMatchup | null {
   const matchup = asRecord(input);
-  const id = asString(matchup.id) ?? `${season}-${asString(matchup.matchupPeriodId) ?? 'unknown'}-${asString(asRecord(matchup.home).teamId) ?? 'home'}-${asString(asRecord(matchup.away).teamId) ?? 'away'}`;
+  const id =
+    asString(matchup.id) ??
+    `${season}-${asString(matchup.matchupPeriodId) ?? 'unknown'}-${asString(asRecord(matchup.home).teamId) ?? 'home'}-${asString(asRecord(matchup.away).teamId) ?? 'away'}`;
   const scoringPeriodId = numberOrUndefined(matchup.matchupPeriodId) ?? numberOrUndefined(matchup.scoringPeriodId);
   if (!scoringPeriodId) return null;
 
@@ -182,17 +214,25 @@ function mapMatchupSide(input: unknown) {
   };
 }
 
-function mapDraftPick(input: unknown, leagueExternalId: string, season: number, players: Map<string, LeagueLoreImportPlayer>): LeagueLoreDraftPick | null {
+function mapDraftPick(
+  input: unknown,
+  leagueExternalId: string,
+  season: number,
+  players: Map<string, LeagueLoreImportPlayer>
+): LeagueLoreDraftPick | null {
   const pick = asRecord(input);
   const overallPick = positiveIntegerOrUndefined(pick.overallPickNumber) ?? positiveIntegerOrUndefined(pick.pickNumber);
   const teamExternalId = positiveIdString(pick.teamId);
-  const player = mapPlayer(pick.playerPoolEntry ? asRecord(pick.playerPoolEntry).player : pick.player)
-    ?? playerFromId(pick.playerId, players);
+  const player =
+    mapPlayer(pick.playerPoolEntry ? asRecord(pick.playerPoolEntry).player : pick.player) ??
+    playerFromId(pick.playerId, players);
 
   if (!overallPick && !player) return null;
 
   return {
-    externalRef: overallPick ? { provider: 'espn', externalId: `${leagueExternalId}-${season}-draft-${overallPick}`, rawKind: 'draftPick' } : undefined,
+    externalRef: overallPick
+      ? { provider: 'espn', externalId: `${leagueExternalId}-${season}-draft-${overallPick}`, rawKind: 'draftPick' }
+      : undefined,
     leagueExternalId,
     season,
     round: positiveIntegerOrUndefined(pick.roundId),
@@ -205,7 +245,12 @@ function mapDraftPick(input: unknown, leagueExternalId: string, season: number, 
   };
 }
 
-function mapTransaction(input: unknown, leagueExternalId: string, season: number, players: Map<string, LeagueLoreImportPlayer>): LeagueLoreTransaction | null {
+function mapTransaction(
+  input: unknown,
+  leagueExternalId: string,
+  season: number,
+  players: Map<string, LeagueLoreImportPlayer>
+): LeagueLoreTransaction | null {
   const tx = asRecord(input);
   const id = asString(tx.id) ?? asString(tx.transactionId);
   if (!id) return null;
@@ -229,7 +274,9 @@ function mapTransaction(input: unknown, leagueExternalId: string, season: number
   };
 }
 
-function normalizeTransactionType(input: unknown): 'add' | 'drop' | 'trade' | 'draft' | 'waiver' | 'free_agent' | 'unknown' {
+function normalizeTransactionType(
+  input: unknown
+): 'add' | 'drop' | 'trade' | 'draft' | 'waiver' | 'free_agent' | 'unknown' {
   const value = String(input ?? '').toLowerCase();
   if (value.includes('add')) return 'add';
   if (value.includes('drop')) return 'drop';
@@ -241,7 +288,7 @@ function normalizeTransactionType(input: unknown): 'add' | 'drop' | 'trade' | 'd
 }
 
 function asRecord(input: unknown): Record<string, unknown> {
-  return input && typeof input === 'object' && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  return input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 }
 
 function asArray(input: unknown): unknown[] {
@@ -264,8 +311,9 @@ function buildMemberNameMap(members: unknown[]): Map<string, string> {
   for (const input of members) {
     const member = asRecord(input);
     const id = asString(member.id);
-    const name = asString(member.displayName)
-      ?? [asString(member.firstName), asString(member.lastName)].filter(Boolean).join(' ').trim();
+    const name =
+      asString(member.displayName) ??
+      [asString(member.firstName), asString(member.lastName)].filter(Boolean).join(' ').trim();
     if (id && name) result.set(id, name);
   }
   return result;
@@ -273,11 +321,13 @@ function buildMemberNameMap(members: unknown[]): Map<string, string> {
 
 function playerFromId(input: unknown, players: Map<string, LeagueLoreImportPlayer>): LeagueLoreImportPlayer | null {
   const id = asString(input);
-  return id ? players.get(id) ?? {
-    externalRef: { provider: 'espn', externalId: id, rawKind: 'player' },
-    fullName: `ESPN Player ${id}`,
-    positions: []
-  } : null;
+  return id
+    ? (players.get(id) ?? {
+        externalRef: { provider: 'espn', externalId: id, rawKind: 'player' },
+        fullName: `ESPN Player ${id}`,
+        positions: []
+      })
+    : null;
 }
 
 function positiveIdString(input: unknown): string | undefined {
@@ -286,16 +336,29 @@ function positiveIdString(input: unknown): string | undefined {
 }
 
 const LINEUP_SLOT_NAMES: Record<number, string> = {
-  0: 'QB', 2: 'RB', 4: 'WR', 6: 'TE', 16: 'D/ST', 17: 'K', 20: 'Bench', 21: 'IR', 23: 'FLEX'
+  0: 'QB',
+  2: 'RB',
+  4: 'WR',
+  6: 'TE',
+  16: 'D/ST',
+  17: 'K',
+  20: 'Bench',
+  21: 'IR',
+  23: 'FLEX'
 };
 
 const POSITION_NAMES: Record<number, string> = {
-  1: 'QB', 2: 'RB', 3: 'WR', 4: 'TE', 5: 'K', 16: 'D/ST'
+  1: 'QB',
+  2: 'RB',
+  3: 'WR',
+  4: 'TE',
+  5: 'K',
+  16: 'D/ST'
 };
 
 function lineupSlotName(input: unknown): string | undefined {
   const id = numberOrUndefined(input);
-  return id === undefined ? undefined : LINEUP_SLOT_NAMES[id] ?? String(id);
+  return id === undefined ? undefined : (LINEUP_SLOT_NAMES[id] ?? String(id));
 }
 
 function playerPositions(player: Record<string, unknown>): string[] {
@@ -339,7 +402,10 @@ function scrubUnknown(input: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(input)) {
     const normalizedKey = key.toLowerCase();
-    if (['cookie', 'token', 'secret', 'password', 'authorization'].some((sensitive) => normalizedKey.includes(sensitive))) continue;
+    if (
+      ['cookie', 'token', 'secret', 'password', 'authorization'].some((sensitive) => normalizedKey.includes(sensitive))
+    )
+      continue;
     if (value === undefined || typeof value === 'function') continue;
     if (Array.isArray(value)) result[key] = value.map((item) => scrubValue(item));
     else result[key] = scrubValue(value);

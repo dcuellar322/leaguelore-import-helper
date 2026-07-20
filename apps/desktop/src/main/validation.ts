@@ -46,7 +46,11 @@ export function normalizeApiBaseUrl(input: string, options: UrlValidationOptions
     return normalized;
   }
 
-  if (options.allowLocalhost && (parsed.protocol === 'http:' || parsed.protocol === 'https:') && LOCAL_API_HOSTS.has(parsed.hostname)) {
+  if (
+    options.allowLocalhost &&
+    (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+    LOCAL_API_HOSTS.has(parsed.hostname)
+  ) {
     return normalized;
   }
 
@@ -125,25 +129,9 @@ export function parseDeepLinkSettings(input: string, options: UrlValidationOptio
   }
 }
 
-export function parseEspnLeagueInput(input: string): { leagueId: string; season?: number } {
-  const trimmed = input.trim();
-  if (/^\d{1,12}$/.test(trimmed)) return { leagueId: EspnLeagueIdSchema.parse(trimmed) };
-
-  const parsed = new URL(trimmed);
-  if (parsed.protocol !== 'https:' || !(parsed.hostname === 'fantasy.espn.com' || parsed.hostname.endsWith('.fantasy.espn.com'))) {
-    throw new Error('Paste a numeric ESPN league ID or an ESPN fantasy league URL.');
-  }
-  const leagueId = EspnLeagueIdSchema.parse(parsed.searchParams.get('leagueId') ?? '');
-  const rawSeason = parsed.searchParams.get('seasonId') ?? parsed.searchParams.get('season');
-  return {
-    leagueId,
-    ...(rawSeason ? { season: SeasonSchema.parse(rawSeason) } : {})
-  };
-}
-
 export function normalizeLeagueLoreNavigationUrl(input: string, options: UrlValidationOptions): string {
   const parsed = new URL(input.trim());
-  if (parsed.username || parsed.password || parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+  if (parsed.username || parsed.password || (parsed.protocol !== 'https:' && parsed.protocol !== 'http:')) {
     throw new Error('Invalid LeagueLore continuation URL.');
   }
   const production = parsed.protocol === 'https:' && PRODUCTION_API_HOSTS.has(parsed.hostname);

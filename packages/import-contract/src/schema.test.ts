@@ -28,7 +28,20 @@ describe('LeagueLore import contract', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.map((issue) => issue.message)).toContain('Team rogue-team belongs to a different leagueExternalId.');
+      expect(result.error.issues.map((issue) => issue.message)).toContain(
+        'Team rogue-team belongs to a different leagueExternalId.'
+      );
+    }
+  });
+
+  it('rejects bundles without a team', () => {
+    const result = safeValidateImportBundle(createMockImportBundle({ teams: [] }));
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.message)).toContain(
+        'Import bundle must contain at least one team.'
+      );
     }
   });
 

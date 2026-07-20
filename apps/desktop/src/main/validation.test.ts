@@ -9,20 +9,27 @@ import {
   isAllowedLocalRendererUrl,
   normalizeApiBaseUrl,
   normalizeLeagueLoreNavigationUrl,
-  parseEspnLeagueInput,
   parseDeepLinkSettings
 } from './validation.js';
 
 describe('URL and deep-link validation', () => {
   it('normalizes production and local LeagueLore API URLs', () => {
-    expect(normalizeApiBaseUrl('https://www.leagueloreapp.com/api/v1///', { allowLocalhost: false })).toBe('https://www.leagueloreapp.com/api/v1');
+    expect(normalizeApiBaseUrl('https://www.leagueloreapp.com/api/v1///', { allowLocalhost: false })).toBe(
+      'https://www.leagueloreapp.com/api/v1'
+    );
     expect(normalizeApiBaseUrl('http://127.0.0.1:15173/', { allowLocalhost: true })).toBe('http://127.0.0.1:15173');
   });
 
   it('rejects unsafe API URL shapes', () => {
-    expect(() => normalizeApiBaseUrl('https://user:secret@www.leagueloreapp.com', { allowLocalhost: false })).toThrow('must not contain credentials');
-    expect(() => normalizeApiBaseUrl('http://www.leagueloreapp.com', { allowLocalhost: false })).toThrow('must be https://www.leagueloreapp.com');
-    expect(() => normalizeApiBaseUrl('http://example.com', { allowLocalhost: true })).toThrow('must be https://www.leagueloreapp.com');
+    expect(() => normalizeApiBaseUrl('https://user:secret@www.leagueloreapp.com', { allowLocalhost: false })).toThrow(
+      'must not contain credentials'
+    );
+    expect(() => normalizeApiBaseUrl('http://www.leagueloreapp.com', { allowLocalhost: false })).toThrow(
+      'must be https://www.leagueloreapp.com'
+    );
+    expect(() => normalizeApiBaseUrl('http://example.com', { allowLocalhost: true })).toThrow(
+      'must be https://www.leagueloreapp.com'
+    );
   });
 
   it('parses LeagueLore import deep links into helper settings', () => {
@@ -40,12 +47,13 @@ describe('URL and deep-link validation', () => {
     });
   });
 
-  it('parses ESPN league URLs and restricts LeagueLore continuation URLs', () => {
-    expect(parseEspnLeagueInput('https://fantasy.espn.com/football/league?leagueId=123&seasonId=2025')).toEqual({ leagueId: '123', season: 2025 });
-    expect(parseEspnLeagueInput('123')).toEqual({ leagueId: '123' });
-    expect(() => parseEspnLeagueInput('https://example.com/?leagueId=123')).toThrow();
-    expect(normalizeLeagueLoreNavigationUrl('https://www.leagueloreapp.com/imports/preview?id=1', { allowLocalhost: false })).toBe('https://www.leagueloreapp.com/imports/preview?id=1');
-    expect(() => normalizeLeagueLoreNavigationUrl('https://evil.example/imports/preview', { allowLocalhost: false })).toThrow();
+  it('restricts LeagueLore continuation URLs', () => {
+    expect(
+      normalizeLeagueLoreNavigationUrl('https://www.leagueloreapp.com/imports/preview?id=1', { allowLocalhost: false })
+    ).toBe('https://www.leagueloreapp.com/imports/preview?id=1');
+    expect(() =>
+      normalizeLeagueLoreNavigationUrl('https://evil.example/imports/preview', { allowLocalhost: false })
+    ).toThrow();
   });
 
   it('ignores invalid or unrelated deep links', () => {
@@ -54,7 +62,9 @@ describe('URL and deep-link validation', () => {
   });
 
   it('finds deep-link argv values from packaged and development invocations', () => {
-    expect(findDeepLinkArg(['/Applications/LeagueLore Import Helper.app', 'leaguelore-import://session?leagueId=1'])).toBe('leaguelore-import://session?leagueId=1');
+    expect(
+      findDeepLinkArg(['/Applications/LeagueLore Import Helper.app', 'leaguelore-import://session?leagueId=1'])
+    ).toBe('leaguelore-import://session?leagueId=1');
     expect(findDeepLinkArg(['/usr/local/bin/electron', '.', '--flag'])).toBeUndefined();
   });
 
@@ -81,21 +91,29 @@ describe('URL and deep-link validation', () => {
       season: undefined
     });
 
-    expect(() => createUploadParamsSchema({ allowLocalhost: false }).parse({
-      apiBaseUrl: 'https://www.leagueloreapp.com',
-      importToken: '',
-      bundle: {}
-    })).toThrow();
+    expect(() =>
+      createUploadParamsSchema({ allowLocalhost: false }).parse({
+        apiBaseUrl: 'https://www.leagueloreapp.com',
+        importToken: '',
+        bundle: {}
+      })
+    ).toThrow();
   });
 
   it('validates import parameter boundaries', () => {
-    expect(EspnOpenLoginParamsSchema.parse({ leagueId: '123', season: '' })).toEqual({ leagueId: '123', season: undefined });
+    expect(EspnOpenLoginParamsSchema.parse({ leagueId: '123', season: '' })).toEqual({
+      leagueId: '123',
+      season: undefined
+    });
     expect(EspnImportParamsSchema.parse({ leagueId: '123', season: 2026, importSessionId: 'session-1' })).toEqual({
       leagueId: '123',
       season: 2026,
       importSessionId: 'session-1'
     });
-    expect(MockImportParamsSchema.parse({ leagueId: 'mock_league-1', season: undefined })).toEqual({ leagueId: 'mock_league-1', season: undefined });
+    expect(MockImportParamsSchema.parse({ leagueId: 'mock_league-1', season: undefined })).toEqual({
+      leagueId: 'mock_league-1',
+      season: undefined
+    });
     expect(() => EspnImportParamsSchema.parse({ leagueId: 'abc', season: 2026 })).toThrow();
     expect(() => MockImportParamsSchema.parse({ leagueId: 'bad league', season: 2026 })).toThrow();
   });

@@ -63,7 +63,8 @@ export async function fetchEspnLeaguePayload(params: EspnFetchParams, options: F
 }
 
 function espnStatusMessage(status: number): string {
-  if (status === 401 || status === 403) return 'ESPN sign-in expired or this account cannot access the league. Sign in again and retry.';
+  if (status === 401 || status === 403)
+    return 'ESPN sign-in expired or this account cannot access the league. Sign in again and retry.';
   if (status === 404) return 'ESPN could not find that league and season. Confirm both values and retry.';
   if (status === 429) return 'ESPN is temporarily rate limiting imports. Wait a moment and retry.';
   if (status >= 500) return 'ESPN is temporarily unavailable. Try again shortly.';
@@ -73,9 +74,13 @@ function espnStatusMessage(status: number): string {
 async function retryDelay(attempt: number, signal?: AbortSignal): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(resolve, 350 * 2 ** attempt);
-    signal?.addEventListener('abort', () => {
-      clearTimeout(timeout);
-      reject(new Error('Import canceled.'));
-    }, { once: true });
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(timeout);
+        reject(new Error('Import canceled.'));
+      },
+      { once: true }
+    );
   });
 }

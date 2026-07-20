@@ -9,35 +9,78 @@ describe('LeagueLore uploads', () => {
   beforeEach(() => vi.restoreAllMocks());
 
   it('accepts a trusted continuation URL from a successful preview', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ continuationUrl: 'http://localhost:15173/imports/preview/1' }), { status: 200 })));
-    const result = await uploadBundle({ apiBaseUrl: 'http://localhost:15173', importToken: 'one-time-token', bundle: createMockImportBundle() });
-    expect(result).toMatchObject({ ok: true, code: 'ok', retryable: false, continuationUrl: 'http://localhost:15173/imports/preview/1' });
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ continuationUrl: 'http://localhost:15173/imports/preview/1' }), { status: 200 })
+        )
+    );
+    const result = await uploadBundle({
+      apiBaseUrl: 'http://localhost:15173',
+      importToken: 'one-time-token',
+      bundle: createMockImportBundle()
+    });
+    expect(result).toMatchObject({
+      ok: true,
+      code: 'ok',
+      retryable: false,
+      continuationUrl: 'http://localhost:15173/imports/preview/1'
+    });
   });
 
   it('drops untrusted continuation URLs and classifies expired sessions', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ continuationUrl: 'https://evil.example/steal' }), { status: 403 })));
-    const result = await uploadBundle({ apiBaseUrl: 'http://localhost:15173', importToken: 'expired-token', bundle: createMockImportBundle() });
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ continuationUrl: 'https://evil.example/steal' }), { status: 403 })
+        )
+    );
+    const result = await uploadBundle({
+      apiBaseUrl: 'http://localhost:15173',
+      importToken: 'expired-token',
+      bundle: createMockImportBundle()
+    });
     expect(result).toMatchObject({ ok: false, code: 'expired', retryable: false });
     expect(result.continuationUrl).toBeUndefined();
   });
 
   it('returns a privacy-safe offline result', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('socket failed with sensitive internals')));
-    const result = await uploadBundle({ apiBaseUrl: 'http://localhost:15173', importToken: 'token', bundle: createMockImportBundle() });
-    expect(result).toMatchObject({ ok: false, code: 'offline', retryable: true, message: 'Unable to reach LeagueLore. Check your connection and retry.' });
+    const result = await uploadBundle({
+      apiBaseUrl: 'http://localhost:15173',
+      importToken: 'token',
+      bundle: createMockImportBundle()
+    });
+    expect(result).toMatchObject({
+      ok: false,
+      code: 'offline',
+      retryable: true,
+      message: 'Unable to reach LeagueLore. Check your connection and retry.'
+    });
   });
 
   it('classifies cancellation separately from connectivity failures', async () => {
     const controller = new AbortController();
     controller.abort();
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('aborted')));
-    const result = await uploadBundle({ apiBaseUrl: 'http://localhost:15173', importToken: 'token', bundle: createMockImportBundle() }, controller.signal);
+    const result = await uploadBundle(
+      { apiBaseUrl: 'http://localhost:15173', importToken: 'token', bundle: createMockImportBundle() },
+      controller.signal
+    );
     expect(result).toMatchObject({ ok: false, code: 'canceled', retryable: false, message: 'Upload canceled.' });
   });
 
   it('ignores non-object successful response bodies', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('accepted', { status: 200 })));
-    const result = await uploadBundle({ apiBaseUrl: 'http://localhost:15173', importToken: 'token', bundle: createMockImportBundle() });
+    const result = await uploadBundle({
+      apiBaseUrl: 'http://localhost:15173',
+      importToken: 'token',
+      bundle: createMockImportBundle()
+    });
     expect(result).toMatchObject({ ok: true, code: 'ok' });
     expect(result.continuationUrl).toBeUndefined();
   });

@@ -115,97 +115,129 @@ export const TransactionSchema = z.object({
   notes: z.string().optional()
 });
 
-export const LeagueLoreImportBundleSchema = z.object({
-  metadata: ImportMetadataSchema,
-  league: LeagueSchema,
-  teams: z.array(TeamSchema).default([]),
-  rosterEntries: z.array(RosterEntrySchema).default([]),
-  matchups: z.array(MatchupSchema).default([]),
-  draftPicks: z.array(DraftPickSchema).default([]),
-  transactions: z.array(TransactionSchema).default([])
-}).superRefine((bundle, ctx) => {
-  const leagueId = bundle.league.externalRef.externalId;
-  const teamIds = new Set<string>();
-  const matchupIds = new Set<string>();
-  const transactionIds = new Set<string>();
+export const LeagueLoreImportBundleSchema = z
+  .object({
+    metadata: ImportMetadataSchema,
+    league: LeagueSchema,
+    teams: z.array(TeamSchema).min(1, 'Import bundle must contain at least one team.'),
+    rosterEntries: z.array(RosterEntrySchema).default([]),
+    matchups: z.array(MatchupSchema).default([]),
+    draftPicks: z.array(DraftPickSchema).default([]),
+    transactions: z.array(TransactionSchema).default([])
+  })
+  .superRefine((bundle, ctx) => {
+    const leagueId = bundle.league.externalRef.externalId;
+    const teamIds = new Set<string>();
+    const matchupIds = new Set<string>();
+    const transactionIds = new Set<string>();
 
-  function issue(message: string, path: Array<string | number>) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message, path });
-  }
+    function issue(message: string, path: Array<string | number>) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path });
+    }
 
-  if (bundle.metadata.source !== bundle.league.externalRef.provider) {
-    issue('Import source must match the league provider.', ['metadata', 'source']);
-  }
+    if (bundle.metadata.source !== bundle.league.externalRef.provider) {
+      issue('Import source must match the league provider.', ['metadata', 'source']);
+    }
 
-  for (const team of bundle.teams) {
-    if (team.leagueExternalId !== leagueId) {
-      issue(`Team ${team.externalRef.externalId} belongs to a different leagueExternalId.`, ['teams']);
-    }
-    if (teamIds.has(team.externalRef.externalId)) {
-      issue(`Duplicate team external ID ${team.externalRef.externalId}.`, ['teams']);
-    } else {
-      teamIds.add(team.externalRef.externalId);
-    }
-  }
-
-  for (const [index, entry] of bundle.rosterEntries.entries()) {
-    if (!teamIds.has(entry.teamExternalId)) {
-      issue(`Roster entry references unknown team ${entry.teamExternalId}.`, ['rosterEntries', index, 'teamExternalId']);
-    }
-  }
-
-  for (const [index, matchup] of bundle.matchups.entries()) {
-    if (matchup.leagueExternalId !== leagueId) {
-      issue(`Matchup ${matchup.externalRef.externalId} belongs to a different leagueExternalId.`, ['matchups', index]);
-    }
-    if (matchup.season !== bundle.league.season) {
-      issue(`Matchup ${matchup.externalRef.externalId} belongs to a different season.`, ['matchups', index, 'season']);
-    }
-    if (matchupIds.has(matchup.externalRef.externalId)) {
-      issue(`Duplicate matchup external ID ${matchup.externalRef.externalId}.`, ['matchups', index]);
-    } else {
-      matchupIds.add(matchup.externalRef.externalId);
-    }
-    const sideTeamIds = [matchup.home?.teamExternalId, matchup.away?.teamExternalId].filter((value): value is string => Boolean(value));
-    for (const teamId of sideTeamIds) {
-      if (!teamIds.has(teamId)) issue(`Matchup references unknown team ${teamId}.`, ['matchups', index]);
-    }
-    if (matchup.winnerTeamExternalId && !sideTeamIds.includes(matchup.winnerTeamExternalId)) {
-      issue(`Matchup winner ${matchup.winnerTeamExternalId} is not a matchup participant.`, ['matchups', index, 'winnerTeamExternalId']);
-    }
-  }
-
-  for (const [index, pick] of bundle.draftPicks.entries()) {
-    if (pick.leagueExternalId !== leagueId) {
-      issue('Draft pick belongs to a different leagueExternalId.', ['draftPicks', index]);
-    }
-    if (pick.season !== bundle.league.season) {
-      issue('Draft pick belongs to a different season.', ['draftPicks', index, 'season']);
-    }
-    if (pick.teamExternalId && !teamIds.has(pick.teamExternalId)) {
-      issue(`Draft pick references unknown team ${pick.teamExternalId}.`, ['draftPicks', index, 'teamExternalId']);
-    }
-  }
-
-  for (const [index, transaction] of bundle.transactions.entries()) {
-    if (transaction.leagueExternalId !== leagueId) {
-      issue(`Transaction ${transaction.externalRef.externalId} belongs to a different leagueExternalId.`, ['transactions', index]);
-    }
-    if (transaction.season !== bundle.league.season) {
-      issue(`Transaction ${transaction.externalRef.externalId} belongs to a different season.`, ['transactions', index, 'season']);
-    }
-    if (transactionIds.has(transaction.externalRef.externalId)) {
-      issue(`Duplicate transaction external ID ${transaction.externalRef.externalId}.`, ['transactions', index]);
-    } else {
-      transactionIds.add(transaction.externalRef.externalId);
-    }
-    for (const [itemIndex, item] of transaction.items.entries()) {
-      if (item.teamExternalId && !teamIds.has(item.teamExternalId)) {
-        issue(`Transaction item references unknown team ${item.teamExternalId}.`, ['transactions', index, 'items', itemIndex, 'teamExternalId']);
+    for (const team of bundle.teams) {
+      if (team.leagueExternalId !== leagueId) {
+        issue(`Team ${team.externalRef.externalId} belongs to a different leagueExternalId.`, ['teams']);
+      }
+      if (teamIds.has(team.externalRef.externalId)) {
+        issue(`Duplicate team external ID ${team.externalRef.externalId}.`, ['teams']);
+      } else {
+        teamIds.add(team.externalRef.externalId);
       }
     }
-  }
-});
+
+    for (const [index, entry] of bundle.rosterEntries.entries()) {
+      if (!teamIds.has(entry.teamExternalId)) {
+        issue(`Roster entry references unknown team ${entry.teamExternalId}.`, [
+          'rosterEntries',
+          index,
+          'teamExternalId'
+        ]);
+      }
+    }
+
+    for (const [index, matchup] of bundle.matchups.entries()) {
+      if (matchup.leagueExternalId !== leagueId) {
+        issue(`Matchup ${matchup.externalRef.externalId} belongs to a different leagueExternalId.`, [
+          'matchups',
+          index
+        ]);
+      }
+      if (matchup.season !== bundle.league.season) {
+        issue(`Matchup ${matchup.externalRef.externalId} belongs to a different season.`, [
+          'matchups',
+          index,
+          'season'
+        ]);
+      }
+      if (matchupIds.has(matchup.externalRef.externalId)) {
+        issue(`Duplicate matchup external ID ${matchup.externalRef.externalId}.`, ['matchups', index]);
+      } else {
+        matchupIds.add(matchup.externalRef.externalId);
+      }
+      const sideTeamIds = [matchup.home?.teamExternalId, matchup.away?.teamExternalId].filter(
+        (value): value is string => Boolean(value)
+      );
+      for (const teamId of sideTeamIds) {
+        if (!teamIds.has(teamId)) issue(`Matchup references unknown team ${teamId}.`, ['matchups', index]);
+      }
+      if (matchup.winnerTeamExternalId && !sideTeamIds.includes(matchup.winnerTeamExternalId)) {
+        issue(`Matchup winner ${matchup.winnerTeamExternalId} is not a matchup participant.`, [
+          'matchups',
+          index,
+          'winnerTeamExternalId'
+        ]);
+      }
+    }
+
+    for (const [index, pick] of bundle.draftPicks.entries()) {
+      if (pick.leagueExternalId !== leagueId) {
+        issue('Draft pick belongs to a different leagueExternalId.', ['draftPicks', index]);
+      }
+      if (pick.season !== bundle.league.season) {
+        issue('Draft pick belongs to a different season.', ['draftPicks', index, 'season']);
+      }
+      if (pick.teamExternalId && !teamIds.has(pick.teamExternalId)) {
+        issue(`Draft pick references unknown team ${pick.teamExternalId}.`, ['draftPicks', index, 'teamExternalId']);
+      }
+    }
+
+    for (const [index, transaction] of bundle.transactions.entries()) {
+      if (transaction.leagueExternalId !== leagueId) {
+        issue(`Transaction ${transaction.externalRef.externalId} belongs to a different leagueExternalId.`, [
+          'transactions',
+          index
+        ]);
+      }
+      if (transaction.season !== bundle.league.season) {
+        issue(`Transaction ${transaction.externalRef.externalId} belongs to a different season.`, [
+          'transactions',
+          index,
+          'season'
+        ]);
+      }
+      if (transactionIds.has(transaction.externalRef.externalId)) {
+        issue(`Duplicate transaction external ID ${transaction.externalRef.externalId}.`, ['transactions', index]);
+      } else {
+        transactionIds.add(transaction.externalRef.externalId);
+      }
+      for (const [itemIndex, item] of transaction.items.entries()) {
+        if (item.teamExternalId && !teamIds.has(item.teamExternalId)) {
+          issue(`Transaction item references unknown team ${item.teamExternalId}.`, [
+            'transactions',
+            index,
+            'items',
+            itemIndex,
+            'teamExternalId'
+          ]);
+        }
+      }
+    }
+  });
 
 export const LeagueLoreImportPreviewSchema = z.object({
   importSessionId: z.string().min(1),

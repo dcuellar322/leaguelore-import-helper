@@ -19,17 +19,47 @@ export const sanitizedPrivateLeaguePayload = {
       location: 'Fixture',
       nickname: 'Foxes',
       owners: ['{MEMBER-ONE}'],
-      roster: { entries: [{ lineupSlotId: 0, playerPoolEntry: { player: { id: 101, fullName: 'Fixture Quarterback', defaultPositionId: 1 } } }] }
+      roster: {
+        entries: [
+          {
+            lineupSlotId: 0,
+            playerPoolEntry: { player: { id: 101, fullName: 'Fixture Quarterback', defaultPositionId: 1 } }
+          }
+        ]
+      }
     },
     {
       id: 2,
       location: 'Sample',
       nickname: 'Owls',
       owners: ['{MEMBER-TWO}'],
-      roster: { entries: [{ lineupSlotId: 2, playerPoolEntry: { player: { id: 202, fullName: 'Sample Running Back', defaultPositionId: 2 } } }] }
+      roster: {
+        entries: [
+          {
+            lineupSlotId: 2,
+            playerPoolEntry: { player: { id: 202, fullName: 'Sample Running Back', defaultPositionId: 2 } }
+          }
+        ]
+      }
     }
   ],
-  schedule: [{ id: 301, matchupPeriodId: 1, winner: 'AWAY', home: { teamId: 1, totalPoints: 101.2 }, away: { teamId: 2, totalPoints: 107.8 } }],
+  schedule: [
+    {
+      id: 301,
+      matchupPeriodId: 1,
+      winner: 'AWAY',
+      home: { teamId: 1, totalPoints: 101.2 },
+      away: { teamId: 2, totalPoints: 107.8 }
+    }
+  ],
   draftDetail: { picks: [{ overallPickNumber: 1, roundId: 1, roundPickNumber: 1, teamId: 1, playerId: 101 }] },
-  transactions: [{ id: '401', type: 'FREEAGENT', status: 'EXECUTED', processDate: 1760000000000, items: [{ type: 'FREEAGENT ADD', toTeamId: 2, playerId: 202 }] }]
+  transactions: [
+    {
+      id: '401',
+      type: 'FREEAGENT',
+      status: 'EXECUTED',
+      processDate: 1760000000000,
+      items: [{ type: 'FREEAGENT ADD', toTeamId: 2, playerId: 202 }]
+    }
+  ]
 };
