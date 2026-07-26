@@ -8,7 +8,7 @@ describe('ESPN season defaults', () => {
   });
 
   it('selects packaged and development API defaults', () => {
-    expect(defaultLeagueLoreApiBaseUrl(true)).toBe('https://www.leagueloreapp.com');
+    expect(defaultLeagueLoreApiBaseUrl(true)).toBe('https://portal.leagueloreapp.com');
     expect(defaultLeagueLoreApiBaseUrl(false)).toBe('http://localhost:15173');
     expect(currentSeasonYear()).toBe(currentEspnSeasonYear());
   });

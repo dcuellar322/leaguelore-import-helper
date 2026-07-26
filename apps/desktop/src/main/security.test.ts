@@ -24,10 +24,11 @@ describe('window and external navigation security', () => {
   });
 
   it('opens only purpose-specific LeagueLore and GitHub URLs', () => {
+    openTrustedLeagueLoreUrl('https://portal.leagueloreapp.com/imports/1');
     openTrustedLeagueLoreUrl('https://www.leagueloreapp.com/imports/1');
     openTrustedUpdateUrl('https://github.com/dcuellar322/leaguelore-import-helper/releases/tag/v0.2.0');
     openTrustedProjectUrl('https://github.com/dcuellar322/leaguelore-import-helper/blob/master/docs/PRIVACY.md');
-    expect(openExternal).toHaveBeenCalledTimes(3);
+    expect(openExternal).toHaveBeenCalledTimes(4);
 
     expect(() => openTrustedLeagueLoreUrl('https://github.com/')).toThrow('Rejected untrusted LeagueLore URL');
     expect(() => openTrustedUpdateUrl('https://github.com/example/project/releases/1')).toThrow(

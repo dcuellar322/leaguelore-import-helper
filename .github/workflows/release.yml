@@ -59,7 +59,7 @@ jobs:
         run: |
           executable=$(find apps/desktop/dist -type f -path '*/LeagueLore Import Helper.app/Contents/MacOS/LeagueLore Import' -print -quit)
           test -n "$executable"
-          "$executable" --smoke-test "leaguelore-import://session?token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
+          "$executable" --smoke-test "leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
       - uses: actions/upload-artifact@v7
         with:
           name: macos-${{ matrix.arch }}
@@ -88,7 +88,7 @@ jobs:
       - name: Smoke test packaged app and deep link
         shell: bash
         run: |
-          "apps/desktop/dist/win-unpacked/LeagueLore Import Helper.exe" --smoke-test "leaguelore-import://session?token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
+          "apps/desktop/dist/win-unpacked/LeagueLore Import Helper.exe" --smoke-test "leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
       - uses: actions/upload-artifact@v7
         with:
           name: windows-x64
@@ -108,7 +108,7 @@ jobs:
       - run: npm -w apps/desktop run make -- --linux --x64
       - name: Smoke test packaged app and deep link
         run: |
-          xvfb-run "apps/desktop/dist/linux-unpacked/leaguelore-import-helper" --smoke-test "leaguelore-import://session?token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
+          xvfb-run "apps/desktop/dist/linux-unpacked/leaguelore-import-helper" --smoke-test "leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
       - uses: actions/upload-artifact@v7
         with:
           name: linux-x64

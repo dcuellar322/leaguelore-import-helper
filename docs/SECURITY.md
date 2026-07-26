@@ -35,6 +35,10 @@ The app follows the main Electron security recommendations:
 - restrictive Content Security Policy for the renderer
 - Electron fuses configured for packaged builds
 
+Packaged builds upload only to `https://portal.leagueloreapp.com`. The marketing and apex
+hostnames are not accepted as API upload or continuation origins. Localhost is accepted only by
+unpackaged development builds.
+
 Packaged builds disable `RunAsNode`, `NODE_OPTIONS`, CLI inspector arguments, browser-specific V8 snapshots, and extra `file://` privileges. They enable cookie encryption, embedded ASAR integrity validation, and loading application code only from the signed ASAR. The renderer is served through the app's restricted `app://bundle` protocol.
 
 ## Logging policy

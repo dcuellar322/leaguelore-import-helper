@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HelperSettings } from '../shared/ipc.js';
 
-const PRODUCTION_API_HOSTS = new Set(['leagueloreapp.com', 'www.leagueloreapp.com']);
+const PRODUCTION_API_HOSTS = new Set(['portal.leagueloreapp.com']);
 const LOCAL_API_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const DEEP_LINK_PROTOCOL = 'leaguelore-import:';
 
@@ -54,7 +54,7 @@ export function normalizeApiBaseUrl(input: string, options: UrlValidationOptions
     return normalized;
   }
 
-  throw new Error('LeagueLore API URL must be https://www.leagueloreapp.com or a local development URL.');
+  throw new Error('LeagueLore API URL must be https://portal.leagueloreapp.com or a local development URL.');
 }
 
 export function isAllowedLocalRendererUrl(input: string): boolean {
