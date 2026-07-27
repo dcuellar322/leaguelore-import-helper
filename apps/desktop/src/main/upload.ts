@@ -3,11 +3,23 @@ import { validateImportBundle } from '@leaguelore/import-contract';
 import type { UploadParams, UploadResult } from '../shared/ipc.js';
 import { createUploadParamsSchema, normalizeLeagueLoreNavigationUrl } from './validation.js';
 
+export const MAX_IMPORT_BUNDLE_BYTES = 8 * 1024 * 1024;
+
 export async function uploadBundle(params: UploadParams, signal?: AbortSignal): Promise<UploadResult> {
   const parsedParams = createUploadParamsSchema({ allowLocalhost: !app.isPackaged }).parse(params);
   const bundle = validateImportBundle(parsedParams.bundle);
   const baseUrl = parsedParams.apiBaseUrl.replace(/\/$/, '');
   const url = `${baseUrl}/api/import-helper/espn/preview`;
+  const requestBody = JSON.stringify(bundle);
+  if (new TextEncoder().encode(requestBody).byteLength > MAX_IMPORT_BUNDLE_BYTES) {
+    return {
+      ok: false,
+      status: 413,
+      code: 'rejected',
+      message: 'Import bundle exceeds the 8 MiB upload limit.',
+      retryable: false
+    };
+  }
 
   try {
     const response = await fetch(url, {
@@ -17,7 +29,7 @@ export async function uploadBundle(params: UploadParams, signal?: AbortSignal): 
         accept: 'application/json',
         'x-leaguelore-import-token': parsedParams.importToken
       },
-      body: JSON.stringify(bundle),
+      body: requestBody,
       signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(30_000)]) : AbortSignal.timeout(30_000)
     });
 

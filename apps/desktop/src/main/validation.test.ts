@@ -14,32 +14,36 @@ import {
 
 describe('URL and deep-link validation', () => {
   it('normalizes production and local LeagueLore API URLs', () => {
-    expect(normalizeApiBaseUrl('https://www.leagueloreapp.com/api/v1///', { allowLocalhost: false })).toBe(
-      'https://www.leagueloreapp.com/api/v1'
+    expect(normalizeApiBaseUrl('https://portal.leagueloreapp.com/api/v1///', { allowLocalhost: false })).toBe(
+      'https://portal.leagueloreapp.com/api/v1'
     );
     expect(normalizeApiBaseUrl('http://127.0.0.1:15173/', { allowLocalhost: true })).toBe('http://127.0.0.1:15173');
   });
 
   it('rejects unsafe API URL shapes', () => {
-    expect(() => normalizeApiBaseUrl('https://user:secret@www.leagueloreapp.com', { allowLocalhost: false })).toThrow(
-      'must not contain credentials'
-    );
-    expect(() => normalizeApiBaseUrl('http://www.leagueloreapp.com', { allowLocalhost: false })).toThrow(
-      'must be https://www.leagueloreapp.com'
+    expect(() =>
+      normalizeApiBaseUrl('https://user:secret@portal.leagueloreapp.com', { allowLocalhost: false })
+    ).toThrow('must not contain credentials');
+    expect(() => normalizeApiBaseUrl('http://portal.leagueloreapp.com', { allowLocalhost: false })).toThrow(
+      'must be https://portal.leagueloreapp.com'
     );
     expect(() => normalizeApiBaseUrl('http://example.com', { allowLocalhost: true })).toThrow(
-      'must be https://www.leagueloreapp.com'
+      'must be https://portal.leagueloreapp.com'
     );
+    expect(() => normalizeApiBaseUrl('https://www.leagueloreapp.com', { allowLocalhost: false })).toThrow();
+    expect(() =>
+      normalizeApiBaseUrl('https://portal.leagueloreapp.com.evil.example', { allowLocalhost: false })
+    ).toThrow();
   });
 
   it('parses LeagueLore import deep links into helper settings', () => {
     const settings = parseDeepLinkSettings(
-      'leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=session-token&importSessionId=import-1&leagueId=123456&season=2026',
+      'leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=session-token&importSessionId=import-1&leagueId=123456&season=2026',
       { allowLocalhost: false }
     );
 
     expect(settings).toEqual({
-      apiBaseUrl: 'https://www.leagueloreapp.com',
+      apiBaseUrl: 'https://portal.leagueloreapp.com',
       importToken: 'session-token',
       importSessionId: 'import-1',
       leagueId: '123456',
@@ -49,16 +53,24 @@ describe('URL and deep-link validation', () => {
 
   it('restricts LeagueLore continuation URLs', () => {
     expect(
-      normalizeLeagueLoreNavigationUrl('https://www.leagueloreapp.com/imports/preview?id=1', { allowLocalhost: false })
-    ).toBe('https://www.leagueloreapp.com/imports/preview?id=1');
+      normalizeLeagueLoreNavigationUrl('https://portal.leagueloreapp.com/imports/preview?id=1', {
+        allowLocalhost: false
+      })
+    ).toBe('https://portal.leagueloreapp.com/imports/preview?id=1');
     expect(() =>
       normalizeLeagueLoreNavigationUrl('https://evil.example/imports/preview', { allowLocalhost: false })
     ).toThrow();
   });
 
   it('ignores invalid or unrelated deep links', () => {
-    expect(parseDeepLinkSettings('https://www.leagueloreapp.com', { allowLocalhost: false })).toBeNull();
+    expect(parseDeepLinkSettings('https://portal.leagueloreapp.com', { allowLocalhost: false })).toBeNull();
     expect(parseDeepLinkSettings('leaguelore-import://session?leagueId=abc', { allowLocalhost: false })).toBeNull();
+    expect(
+      parseDeepLinkSettings(
+        'leaguelore-import://start?apiBase=http%3A%2F%2Flocalhost%3A15173&token=secret&leagueId=123',
+        { allowLocalhost: false }
+      )
+    ).toBeNull();
   });
 
   it('finds deep-link argv values from packaged and development invocations', () => {
@@ -93,7 +105,7 @@ describe('URL and deep-link validation', () => {
 
     expect(() =>
       createUploadParamsSchema({ allowLocalhost: false }).parse({
-        apiBaseUrl: 'https://www.leagueloreapp.com',
+        apiBaseUrl: 'https://portal.leagueloreapp.com',
         importToken: '',
         bundle: {}
       })

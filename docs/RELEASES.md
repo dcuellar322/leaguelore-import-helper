@@ -69,9 +69,14 @@ Assets:
 Before announcing a release:
 
 1. Install each native artifact on a clean supported OS.
-2. Launch with a `leaguelore-import://session` link and confirm league, season, session ID, and token handoff.
+2. Launch with a `leaguelore-import://start` link containing the canonical portal
+   API base and confirm league, season, session ID, and token handoff.
 3. Complete a sanitized end-to-end preview against the production API.
 4. Verify macOS notarization with `xcrun stapler validate` and Windows signatures with `Get-AuthenticodeSignature`.
 5. Confirm the packaged fuse report disables Node injection/inspection and enforces encrypted cookies and ASAR integrity.
 
 The manually dispatched **Production upload smoke test** workflow requires approval through the `production-smoke` GitHub environment plus a newly issued one-time `LEAGUELORE_SMOKE_TOKEN` and `LEAGUELORE_SMOKE_SESSION_ID`. It uploads a sanitized minimal ESPN-shaped bundle, prints only the HTTP status, and rejects continuation URLs outside LeagueLore. Run it before promoting a public release; the preview it creates can then be deleted through the normal LeagueLore flow.
+
+The production API and continuation origin is `https://portal.leagueloreapp.com`. A release is
+blocked if a packaged deep link, upload, or continuation targets the marketing hostname, apex
+hostname, localhost, or an unrelated origin.

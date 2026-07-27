@@ -46,7 +46,10 @@ Run the desktop app in development:
 npm run dev
 ```
 
-The helper points to `http://localhost:15173` in local development and `https://www.leagueloreapp.com` in packaged production builds. The API URL and import token are runtime session details, so they are not edited in the app UI.
+The helper points to `http://localhost:15173` in local development and
+`https://portal.leagueloreapp.com` in packaged production builds. The API URL and import token are
+runtime session details, so they are not edited in the app UI. Packaged builds reject localhost,
+the marketing hostname, and unrelated upload origins.
 
 Run type checks:
 
@@ -109,7 +112,7 @@ The tag release workflow refuses to publish without signing credentials and prod
 LeagueLore can prefill an import session by opening the app with the registered custom protocol:
 
 ```text
-leaguelore-import://session?apiBase=https%3A%2F%2Fwww.leagueloreapp.com&token=<one-time-import-token>&importSessionId=<session-id>&leagueId=<espn-league-id>&season=2025
+leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=<one-time-import-token>&importSessionId=<session-id>&leagueId=<espn-league-id>&season=2025
 ```
 
 Supported query parameters:

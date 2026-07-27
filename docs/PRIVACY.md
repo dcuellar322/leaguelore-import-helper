@@ -15,6 +15,7 @@ Your ESPN session cookies stay on your computer inside the helper's isolated ESP
 The ESPN session is not shared with your normal browser profile. Packaged builds enable Electron's operating-system-backed cookie encryption, and closing the helper ends its non-persistent ESPN session.
 
 Short-lived LeagueLore import tokens are used for upload authorization and are not saved to the helper settings file.
+Packaged builds send reviewed bundles only to `https://portal.leagueloreapp.com`.
 
 ## What can be sent to LeagueLore
 

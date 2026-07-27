@@ -3,7 +3,7 @@ import { createMockImportBundle } from '@leaguelore/import-contract';
 
 vi.mock('electron', () => ({ app: { isPackaged: false } }));
 
-import { uploadBundle } from './upload.js';
+import { MAX_IMPORT_BUNDLE_BYTES, uploadBundle } from './upload.js';
 
 describe('LeagueLore uploads', () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -83,5 +83,21 @@ describe('LeagueLore uploads', () => {
     });
     expect(result).toMatchObject({ ok: true, code: 'ok' });
     expect(result.continuationUrl).toBeUndefined();
+  });
+
+  it('rejects an oversized bundle before sending it', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const bundle = createMockImportBundle();
+    bundle.metadata.warnings = ['x'.repeat(MAX_IMPORT_BUNDLE_BYTES)];
+
+    const result = await uploadBundle({
+      apiBaseUrl: 'http://localhost:15173',
+      importToken: 'token',
+      bundle
+    });
+
+    expect(result).toMatchObject({ ok: false, status: 413, code: 'rejected', retryable: false });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

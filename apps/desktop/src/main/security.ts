@@ -1,6 +1,11 @@
 import { shell, type BrowserWindow, type WebContents } from 'electron';
 
-const TRUSTED_EXTERNAL_HOSTS = new Set(['www.leagueloreapp.com', 'leagueloreapp.com', 'github.com']);
+const TRUSTED_EXTERNAL_HOSTS = new Set([
+  'portal.leagueloreapp.com',
+  'www.leagueloreapp.com',
+  'leagueloreapp.com',
+  'github.com'
+]);
 
 const ESPN_AUTH_HOST_SUFFIXES = [
   'espn.com',

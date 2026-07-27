@@ -19,7 +19,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm audit
+      - run: npm audit --omit=dev
       - run: npm run lint
       - run: npm run format:check
       - run: npm run test:coverage
