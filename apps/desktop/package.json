@@ -89,7 +89,7 @@
     "@leaguelore/import-contract": "file:../../packages/import-contract",
     "electron-squirrel-startup": "^1.0.1",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7",
+    "react-dom": "^19.2.8",
     "zod": "^4.4.3"
   },
   "devDependencies": {
