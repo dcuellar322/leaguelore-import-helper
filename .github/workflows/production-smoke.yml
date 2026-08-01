@@ -14,7 +14,7 @@ jobs:
       LEAGUELORE_SMOKE_TOKEN: ${{ secrets.LEAGUELORE_SMOKE_TOKEN }}
       LEAGUELORE_SMOKE_SESSION_ID: ${{ secrets.LEAGUELORE_SMOKE_SESSION_ID }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
