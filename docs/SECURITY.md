@@ -62,10 +62,16 @@ Before sending to non-technical beta users, treat these items as release blocker
 
 1. Publish the helper source publicly.
 2. Sign and notarize macOS x64 and arm64 builds.
-3. Sign Windows builds.
-4. Publish SHA-256 checksums with each GitHub release.
+3. Until OV signing is adopted, label Windows installers as unsigned in the filename and release
+   notes, include the unsigned-build notice, and warn users about SmartScreen and managed-device
+   blocking.
+4. Publish SHA-256 checksums with each GitHub release and distribute binaries only through the
+   official repository.
 5. Run the installed deep-link and production-preview smoke test.
 6. Keep an easy-to-read privacy page linked from both the helper and LeagueLore's import screen.
+
+An unsigned Windows installer is a temporary distribution compromise, not proof of publisher
+identity. Move to an OV Authenticode certificate before broader public distribution.
 
 ## Reporting a vulnerability
 

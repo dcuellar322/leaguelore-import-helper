@@ -110,7 +110,7 @@ export function SetupStep({
           <strong>{hasImportSession ? 'LeagueLore session connected' : 'Manual setup'}</strong>
           <p>
             {hasImportSession
-              ? 'A secure, one-time upload session was provided by LeagueLore.'
+              ? 'LeagueLore created a one-time upload link for this import.'
               : 'You can create and save an import locally. Open the helper from LeagueLore when you are ready to send it.'}
           </p>
         </div>
@@ -219,7 +219,7 @@ export function SignInStep({
           <CredentialCheck label="ESPN session" detected={status.hasEspnS2} />
         </div>
         <p className="session-detail">
-          These credentials remain encrypted in the helper's isolated local session and are never uploaded.
+          These session values stay encrypted in the helper. The helper never uploads them.
         </p>
       </div>
       <div className="actions step-actions">
@@ -235,8 +235,7 @@ export function SignInStep({
         ) : (
           <>
             <button className="primary" disabled={busy || !canImport} onClick={onImport}>
-              {busyAction === 'importing' ? 'Importing and validating…' : 'Import this ESPN season'}{' '}
-              <Icon name="arrow" />
+              {busyAction === 'importing' ? 'Checking ESPN data…' : 'Import this ESPN season'} <Icon name="arrow" />
             </button>
             {busyAction === 'importing' && <button onClick={onCancel}>Cancel import</button>}
           </>
@@ -298,7 +297,7 @@ export function PreviewStep({
       <StepHeader
         kicker="Step 3"
         title="Review your import"
-        body="This is the complete, validated data bundle. ESPN passwords and raw session cookies are never included."
+        body="Review the league data below. The import file never includes your ESPN password or session values."
       />
       <BundleHero bundle={bundle} />
       <BundleSummary bundle={bundle} />
@@ -315,13 +314,12 @@ export function PreviewStep({
       </div>
       {!canUpload && (
         <p className="action-note">
-          <Icon name="lock" /> Sending is available when this helper is opened from LeagueLore. Local export is always
-          available.
+          <Icon name="lock" /> Open this helper from LeagueLore to send data. You can always save a local copy.
         </p>
       )}
       <details className="json-preview">
         <summary>
-          <Icon name="file" /> Inspect complete JSON <Icon name="chevron" />
+          <Icon name="file" /> View complete JSON <Icon name="chevron" />
         </summary>
         <pre>{JSON.stringify(bundle, null, 2)}</pre>
       </details>
@@ -367,11 +365,11 @@ export function UploadStep({
     <section className="step-content">
       <StepHeader
         kicker="Step 4"
-        title={result?.ok ? 'Import delivered' : 'Finish your import'}
+        title={result?.ok ? 'Import sent' : 'Finish your import'}
         body={
           result?.ok
-            ? 'LeagueLore received the reviewed bundle and will guide you through the final preview.'
-            : 'Save a local copy or send the reviewed bundle to LeagueLore.'
+            ? 'LeagueLore received the import file. Return to LeagueLore to review and save it.'
+            : 'Save a local copy or send the reviewed import file to LeagueLore.'
         }
       />
       {result ? (
@@ -416,7 +414,7 @@ export function UploadStep({
       )}
       {!result?.ok && !canUpload && (
         <p className="action-note">
-          <Icon name="lock" /> Open this helper from LeagueLore to enable secure sending.
+          <Icon name="lock" /> Open this helper from LeagueLore to send this import.
         </p>
       )}
       {result?.response ? (
@@ -502,7 +500,7 @@ function HumanReadablePreview({ bundle }: { bundle: LeagueLoreImportBundle }) {
     <section className="readable-preview" aria-labelledby="readable-preview-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Human-readable review</p>
+          <p className="eyebrow">Import preview</p>
           <h3 id="readable-preview-title">What will be sent</h3>
         </div>
       </div>
@@ -624,14 +622,14 @@ function BundleHero({ bundle, compact = false }: { bundle: LeagueLoreImportBundl
         <Icon name="file" />
       </span>
       <div>
-        <p className="eyebrow">Validated import bundle</p>
+        <p className="eyebrow">Checked import file</p>
         <h3>{bundle.league.name}</h3>
         <p>
           ESPN season {bundle.league.season} · {bundle.teams.length} teams
         </p>
       </div>
       <span className="validated-badge">
-        <Icon name="check" /> Validated
+        <Icon name="check" /> Checked
       </span>
     </div>
   );
@@ -644,7 +642,7 @@ function BundleSummary({ bundle }: { bundle: LeagueLoreImportBundle }) {
     ['Matchups', bundle.matchups.length],
     ['Draft picks', bundle.draftPicks.length],
     ['Transactions', bundle.transactions.length],
-    ['Contract', bundle.metadata.contractVersion]
+    ['File format', bundle.metadata.contractVersion]
   ];
   return (
     <div className="summary-grid">

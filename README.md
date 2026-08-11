@@ -17,19 +17,19 @@ ESPN, Disney, or the NFL. Your use of ESPN remains subject to ESPN's and Disney'
 - Sign in to ESPN inside a dedicated helper app session.
 - Keep ESPN passwords and raw session cookies local to the helper.
 - Validate import data against a shared TypeScript/Zod contract.
-- Export the generated JSON bundle before uploading.
-- Review teams and owners in human-readable form and include or exclude rosters, matchups, draft picks, and transactions.
-- Upload a validated bundle to a LeagueLore preview endpoint.
+- Save the generated JSON import file before uploading.
+- Review teams and owners, then include or exclude rosters, matchups, draft picks, and transactions.
+- Upload the checked import file to LeagueLore for a final preview.
 - Return directly to the LeagueLore preview after a successful upload when the API supplies a continuation URL.
 - Clear the helper's ESPN session from inside the app.
-- Save a rotating privacy-safe diagnostic log and check for signed releases.
+- Save a rotating privacy-safe diagnostic log and check for official releases.
 
 ## Privacy and Security
 
 - The helper does not read Chrome, Safari, Firefox, or system browser cookie stores.
 - The helper does not upload raw ESPN cookies to LeagueLore.
 - ESPN cookies are used locally only to request fantasy data from ESPN.
-- Import bundles can include league, team, roster, matchup, draft, and transaction data returned by ESPN.
+- Import files can include league, team, roster, matchup, draft, and transaction data returned by ESPN.
 
 See [docs/PRIVACY.md](docs/PRIVACY.md), [docs/SECURITY.md](docs/SECURITY.md), and
 [docs/THIRD-PARTY-SERVICES.md](docs/THIRD-PARTY-SERVICES.md) for more detail.
@@ -111,8 +111,11 @@ Build distributable installers:
 npm run make
 ```
 
-macOS and Windows release builds should be signed before public distribution.
-The tag release workflow refuses to publish without signing credentials and produces macOS x64/arm64, Windows x64, and Linux x64 artifacts.
+macOS release builds are signed and notarized. Windows releases are temporarily distributed as
+clearly labeled unsigned installers, so Windows Defender SmartScreen will show an unknown-publisher
+warning and some managed computers may block them. See
+[the Windows unsigned-build notice](docs/WINDOWS-UNSIGNED-NOTICE.txt). The tag release workflow
+produces macOS x64/arm64, Windows x64, and Linux x64 artifacts with SHA-256 checksums.
 
 ## Launching From LeagueLore
 
