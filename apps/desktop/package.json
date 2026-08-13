@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Secure local ESPN import helper for LeagueLore.",
   "main": "out/main/main.js",
-  "author": "David Cuellar",
+  "author": "Cuellar Labs LLC",
   "license": "MIT",
   "scripts": {
     "dev": "concurrently -k \"vite --config vite.renderer.config.ts\" \"vite build --config vite.main.config.ts --watch\" \"vite build --config vite.preload.config.ts --watch\" \"wait-on out/main/main.js out/preload/preload.js http://127.0.0.1:5173 && cross-env ELECTRON_RENDERER_URL=http://127.0.0.1:5173 electron .\"",
@@ -77,7 +77,7 @@
         "zip"
       ],
       "category": "Game",
-      "maintainer": "David Cuellar"
+      "maintainer": "Cuellar Labs LLC"
     },
     "publish": {
       "provider": "github",

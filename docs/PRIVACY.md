@@ -1,40 +1,71 @@
-# Privacy Statement
+# Import Helper Privacy Statement
 
-Effective July 14, 2026
+Effective August 12, 2026
 
-LeagueLore Import Helper is a local desktop tool that helps you import ESPN fantasy football league data into LeagueLore.
+Cuellar Labs LLC, a Texas limited liability company doing business as LeagueLore, distributes the
+LeagueLore Import Helper. This statement explains what the helper processes on your computer and
+what it can send to LeagueLore.
 
-## What you sign into
+The LeagueLore [Privacy Policy](https://www.leagueloreapp.com/privacy-policy/) applies after you
+upload league information to the LeagueLore service.
 
-You sign in directly with ESPN inside the helper. Your ESPN password is entered into ESPN's website, not LeagueLore.
+## What you sign in to
 
-## What stays local
+You sign in directly with ESPN inside the helper. You enter your ESPN password on ESPN's website.
+The helper and LeagueLore do not receive your ESPN password.
 
-Your ESPN session cookies stay on your computer inside the helper's isolated ESPN session. LeagueLore does not receive raw ESPN cookies from the helper.
+Use only an ESPN account and league that you are authorized to access. The helper does not grant
+permission from ESPN, Disney, the NFL, or another rights holder. Their terms and privacy policies
+continue to apply.
 
-The ESPN session is not shared with your normal browser profile. Packaged builds enable Electron's operating-system-backed cookie encryption, and closing the helper ends its non-persistent ESPN session.
+## What stays on your computer
 
-Short-lived LeagueLore import tokens are used for upload authorization and are not saved to the helper settings file.
-Packaged builds send reviewed bundles only to `https://portal.leagueloreapp.com`.
+Your ESPN session cookies stay on your computer inside the helper's isolated ESPN session. The
+helper does not read Chrome, Safari, Firefox, or another browser cookie store. LeagueLore does not
+receive raw ESPN cookies from the helper.
 
-## What can be sent to LeagueLore
+The ESPN session is separate from your normal browser profile. Packaged builds enable Electron's
+operating-system-backed cookie encryption. Closing the helper ends its non-persistent ESPN session.
+You can also select **Clear ESPN Session** to remove its ESPN cookies and local session storage.
 
-Only the fantasy-football import bundle you review is sent to LeagueLore. That bundle can include league name, season, team names, owner display IDs/names as ESPN returns them, rosters, matchups, draft picks, and transaction history.
+Short-lived LeagueLore import tokens authorize an upload. The helper does not save these tokens in
+its settings file. Packaged builds send reviewed bundles only to
+`https://portal.leagueloreapp.com`.
 
-League and team records are required. Before uploading, you can exclude rosters, matchups, draft picks, or transactions. The exact reviewed JSON remains available for inspection and local export.
+## What you can send to LeagueLore
 
-After upload, LeagueLore stores and processes the reviewed bundle under the LeagueLore service's privacy and deletion policies. The helper itself does not retain a copy unless you choose **Save JSON locally**.
+Only the fantasy-football import bundle that you review is sent to LeagueLore. That bundle can
+include the league name, season, team names, owner display identifiers and names from ESPN,
+rosters, matchups, draft picks, and transaction history.
 
-## Clearing data
+League and team records are required. Before upload, you can exclude rosters, matchups, draft
+picks, or transactions. You can inspect the reviewed JSON and save it locally. After upload,
+LeagueLore stores and uses the information under the LeagueLore Privacy Policy and account
+controls. The helper does not keep a separate copy unless you choose **Save JSON locally**.
 
-Use **Clear ESPN Session** inside the helper to remove ESPN cookies and local ESPN session storage from the helper.
+League information can identify or relate to other league members. Tell affected members that you
+will import their information. Do not import a league if you do not have permission.
 
-## Diagnostics and updates
+## Local settings, diagnostics, and updates
 
-The helper keeps a rotating local diagnostic log containing event names, result codes, and aggregate counts. It excludes cookies, tokens, headers, passwords, secrets, and raw payloads. The log is not uploaded automatically; you choose whether to save and share it with support.
+The helper stores local settings that are needed for the application. It keeps a rotating local
+diagnostic log with event names, result codes, and totals. The log does not contain cookies, import
+tokens, raw headers, passwords, secrets, or raw ESPN responses. The helper does not upload the log.
+You choose whether to save and share it with support.
 
-The packaged helper may contact GitHub's public releases API to check whether a newer signed version is available. It does not send ESPN or LeagueLore account data during that check.
+The packaged helper can contact GitHub's public releases service to check for a newer official
+version. It sends the ordinary technical information needed for that HTTPS request, such as the IP
+address that GitHub receives. It does not send ESPN cookies, a LeagueLore import token, or imported
+league information during an update check.
+
+## Independent service
+
+LeagueLore and the Import Helper are independent. They are not affiliated with, endorsed by,
+sponsored by, or approved by ESPN, Disney, the NFL, or GitHub. See
+[Third-Party Services](THIRD-PARTY-SERVICES.md) for the boundaries that apply.
 
 ## Questions and security reports
 
-Use the private reporting route in [SECURITY.md](SECURITY.md). Never send ESPN cookies, LeagueLore import tokens, or raw account payloads in a support or security report.
+Send privacy questions to [support@leagueloreapp.com](mailto:support@leagueloreapp.com). Do not
+include passwords, tokens, cookies, session values, or raw league records. Use the private reporting
+route in [SECURITY.md](SECURITY.md) for a suspected vulnerability.

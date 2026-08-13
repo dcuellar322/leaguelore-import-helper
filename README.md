@@ -1,10 +1,16 @@
 # LeagueLore Import Helper
 
-LeagueLore Import Helper is an open source desktop app for importing ESPN fantasy football league data into LeagueLore without asking users to paste ESPN cookies into a web form.
+LeagueLore Import Helper is an open source desktop app for importing ESPN fantasy football league
+data into LeagueLore without asking users to paste ESPN cookies into a web form.
 
-The app opens ESPN in an isolated Electron session, lets the user sign in directly with ESPN, fetches fantasy league data locally, converts it into a validated LeagueLore import bundle, and uploads only the reviewed fantasy data to LeagueLore.
+Cuellar Labs LLC operates LeagueLore and distributes the Import Helper.
 
-This project is not affiliated with, endorsed by, or sponsored by ESPN.
+The app opens ESPN in an isolated Electron session, lets the user sign in directly with ESPN,
+fetches fantasy league data locally, converts it into a validated LeagueLore import bundle, and
+uploads only the reviewed fantasy data to LeagueLore.
+
+This project is independent. It is not affiliated with, endorsed by, sponsored by, or approved by
+ESPN, Disney, or the NFL. Your use of ESPN remains subject to ESPN's and Disney's terms.
 
 ## Features
 
@@ -25,7 +31,8 @@ This project is not affiliated with, endorsed by, or sponsored by ESPN.
 - ESPN cookies are used locally only to request fantasy data from ESPN.
 - Import bundles can include league, team, roster, matchup, draft, and transaction data returned by ESPN.
 
-See [docs/PRIVACY.md](docs/PRIVACY.md) and [docs/SECURITY.md](docs/SECURITY.md) for more detail.
+See [docs/PRIVACY.md](docs/PRIVACY.md), [docs/SECURITY.md](docs/SECURITY.md), and
+[docs/THIRD-PARTY-SERVICES.md](docs/THIRD-PARTY-SERVICES.md) for more detail.
 
 ## Requirements
 
