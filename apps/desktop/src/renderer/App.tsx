@@ -75,7 +75,7 @@ export default function App() {
       if (disposed) return;
       setNotice({
         tone: 'error',
-        title: 'The helper could not finish starting',
+        title: 'The helper could not start',
         message: formatError(error)
       });
     }
@@ -87,7 +87,7 @@ export default function App() {
       setNotice({
         tone: 'success',
         title: 'Connected to LeagueLore',
-        message: 'Your league details and secure import session are ready. Confirm them below to continue.'
+        message: 'Your LeagueLore import is ready. Check the league and season to continue.'
       });
     }
 
@@ -155,7 +155,7 @@ export default function App() {
           setNotice({
             tone: 'success',
             title: 'ESPN session ready',
-            message: 'Sign-in was detected automatically. You can import this season now.'
+            message: 'The helper found your ESPN sign-in. You can import this season now.'
           });
         }
       } catch {
@@ -202,7 +202,7 @@ export default function App() {
           ? {
               tone: 'success',
               title: 'ESPN session ready',
-              message: 'Both required ESPN session credentials were detected locally. You can import now.'
+              message: 'The helper found the required ESPN session values. They stay on this computer.'
             }
           : {
               tone: 'info',
@@ -262,7 +262,7 @@ export default function App() {
           : {
               tone: 'success',
               title: 'Import ready to review',
-              message: 'Your ESPN data was normalized and validated locally.'
+              message: 'The helper checked your ESPN league data on this computer.'
             }
       );
     } catch (error) {
@@ -308,7 +308,7 @@ export default function App() {
         setNotice({
           tone: 'success',
           title: 'JSON saved locally',
-          message: result.filePath ?? 'Your import bundle was saved.'
+          message: result.filePath ?? 'Your import file was saved.'
         });
       }
     } catch (error) {
@@ -324,7 +324,7 @@ export default function App() {
       setNotice({
         tone: 'info',
         title: 'Open this helper from LeagueLore to send data',
-        message: 'This manual session can save JSON locally, but it does not include a secure LeagueLore upload token.'
+        message: 'This manual session can save an import file, but it cannot send data to LeagueLore.'
       });
       return;
     }
@@ -383,7 +383,7 @@ export default function App() {
           ? {
               tone: 'info',
               title: `Version ${next.latestVersion} is available`,
-              message: 'Choose “Update available” in the header to open the signed release.'
+              message: 'Choose “Update available” in the header to open the official release page.'
             }
           : next.status === 'current'
             ? {
@@ -410,7 +410,7 @@ export default function App() {
           tone: 'success',
           title: 'Diagnostics saved',
           message:
-            'The privacy-safe support log contains event names and counts, never cookies, tokens, headers, or raw payloads.'
+            'The support log contains event names and counts. It never contains cookies, tokens, headers, or raw ESPN records.'
         });
       }
     } catch (error) {
@@ -477,7 +477,7 @@ export default function App() {
             <Icon name="shield" />{' '}
             {updateInfo?.status === 'available'
               ? `Update ${updateInfo.latestVersion} available`
-              : `Secure local helper ${version ? `· v${version}` : ''}`}
+              : `Local import helper ${version ? `· v${version}` : ''}`}
           </button>
         </div>
       </header>
@@ -485,7 +485,7 @@ export default function App() {
       <section className="intro">
         <div>
           <h2>Bring your ESPN league into LeagueLore.</h2>
-          <p>Sign in directly with ESPN, review the normalized data, then choose exactly what leaves your computer.</p>
+          <p>Sign in directly with ESPN, review your league data, then choose what leaves your computer.</p>
         </div>
         <div className="privacy-points" aria-label="Privacy protections">
           <span>
@@ -524,7 +524,7 @@ export default function App() {
               state={step === 'preview' ? 'active' : stepIndex > 2 ? 'complete' : bundle ? 'available' : 'locked'}
               number="3"
               title="Review data"
-              body="Inspect the local bundle"
+              body="Check what will be sent"
               onClick={() => goToStep('preview')}
             />
             <StepButton
@@ -539,7 +539,7 @@ export default function App() {
             <Icon name="shield" />
             <div>
               <strong>Your ESPN password never enters LeagueLore.</strong>
-              <span>Authentication happens only in this helper.</span>
+              <span>You sign in only inside this helper.</span>
             </div>
           </div>
         </aside>
@@ -605,7 +605,7 @@ export default function App() {
         </div>
       </section>
       <footer className="app-footer">
-        <span>Open source · ESPN credentials stay in the helper session</span>
+        <span>Open source · ESPN session values stay in the helper</span>
         <div>
           <button
             onClick={() =>

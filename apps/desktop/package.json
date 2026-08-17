@@ -66,6 +66,7 @@
       ]
     },
     "win": {
+      "artifactName": "LeagueLoreImportHelper-${version}-win-${arch}-UNSIGNED.${ext}",
       "target": [
         "nsis"
       ]

@@ -1,0 +1,23 @@
+SECURITY NOTICE: THE WINDOWS INSTALLER IS UNSIGNED
+
+The LeagueLore Import Helper Windows installer is intentionally distributed without an
+Authenticode code-signing certificate during the project's early release phase.
+
+What to expect:
+
+- Windows Defender SmartScreen will identify the publisher as unknown and display a warning.
+- Some managed work or school computers may block the installer entirely.
+- A self-signed or third-party copy is not an official substitute for this release.
+
+Only download the installer whose filename ends in -UNSIGNED.exe from the official release page:
+
+https://github.com/dcuellar322/leaguelore-import-helper/releases
+
+Before running it, verify the file's SHA-256 digest against SHA256SUMS.txt from the same release.
+Do not continue if the digest differs. After the digest matches, a user who chooses to proceed can
+select "More info" and then "Run anyway" in the SmartScreen dialog. Some Windows security modes
+and organization policies do not offer that option.
+
+The project intends to adopt a traditional OV Authenticode certificate for future Windows
+releases. Until then, the unsigned filename, this notice, the official download location, and the
+published checksum are the available integrity signals.

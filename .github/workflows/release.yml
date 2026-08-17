@@ -72,8 +72,9 @@ jobs:
     needs: quality
     runs-on: windows-latest
     env:
-      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+      # The current Windows distribution policy is intentionally unsigned.
+      # This prevents a certificate installed on the runner from being selected accidentally.
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v7
@@ -81,18 +82,38 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Require signing credentials
-        shell: bash
-        run: test -n "$CSC_LINK" && test -n "$CSC_KEY_PASSWORD"
-      - run: npm -w apps/desktop run make -- --win --x64
+      - name: Build intentionally unsigned Windows installer
+        run: npm -w apps/desktop run make -- --win --x64
       - name: Smoke test packaged app and deep link
         shell: bash
         run: |
           "apps/desktop/dist/win-unpacked/LeagueLore Import Helper.exe" --smoke-test "leaguelore-import://start?apiBase=https%3A%2F%2Fportal.leagueloreapp.com&token=smoke-token&importSessionId=smoke-session&leagueId=424242&season=2025"
+      - name: Verify Windows binaries are unsigned and clearly labeled
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem apps/desktop/dist -Filter '*-UNSIGNED.exe' -File | Select-Object -First 1
+          if (-not $installer) {
+            throw 'The unsigned Windows installer was not produced with the required -UNSIGNED suffix.'
+          }
+
+          $executables = @(
+            'apps/desktop/dist/win-unpacked/LeagueLore Import Helper.exe',
+            $installer.FullName
+          )
+          foreach ($executable in $executables) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $executable
+            if ($signature.Status -ne 'NotSigned') {
+              throw "Expected $executable to be intentionally unsigned, but signature status was $($signature.Status)."
+            }
+          }
+
+          Copy-Item docs/WINDOWS-UNSIGNED-NOTICE.txt apps/desktop/dist/WINDOWS-UNSIGNED-NOTICE.txt
       - uses: actions/upload-artifact@v7
         with:
-          name: windows-x64
-          path: apps/desktop/dist/*.exe
+          name: windows-x64-unsigned
+          path: |
+            apps/desktop/dist/*-UNSIGNED.exe
+            apps/desktop/dist/WINDOWS-UNSIGNED-NOTICE.txt
           if-no-files-found: error
 
   linux:
@@ -128,8 +149,12 @@ jobs:
           path: release-artifacts
           merge-multiple: true
       - name: Generate checksums
-        run: find release-artifacts -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+        working-directory: release-artifacts
+        run: find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > ../SHA256SUMS.txt
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release-artifacts/* SHA256SUMS.txt --verify-tag --generate-notes --title "LeagueLore Import Helper $GITHUB_REF_NAME"
+          WINDOWS_RELEASE_NOTICE: |
+            > [!WARNING]
+            > **The Windows installer is intentionally unsigned.** Windows Defender SmartScreen will show an unknown-publisher warning, and managed computers may block it. Only download the `-UNSIGNED.exe` from this official repository and verify it against `SHA256SUMS.txt`. macOS release artifacts remain signed and notarized.
+        run: gh release create "$GITHUB_REF_NAME" release-artifacts/* SHA256SUMS.txt --verify-tag --generate-notes --notes "$WINDOWS_RELEASE_NOTICE" --title "LeagueLore Import Helper $GITHUB_REF_NAME"
